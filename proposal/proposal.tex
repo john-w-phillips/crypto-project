@@ -13,11 +13,8 @@
 
 \title{Course  Project Proposal}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\author{\IEEEauthorblockN{John Phillips}
+\textit{johphill@mines.edu}\\
 \and
 \IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
 \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
@@ -53,16 +50,17 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-There have been catastrophic but small modifications to openssl in the
+There have been small but catastrophic modifications to openssl in the
 past\cite{1}\cite{2} that drastically reduced the potential number of
-keys that could be generated during key generation. We'd like to
-explore one such instance, and see if a similar vulnerability that is
-easy to exploit could still be introduced into the codebase with a
-small modification to the base source of openssl.
+keys that could be generated during key generation in the debian
+distribution. We'd like to explore one such instance, and see if a
+similar vulnerability that is easy to exploit could still be
+introduced into the codebase with a small modification to the base
+source of OpenSSL.
 \end{abstract}
 
 \begin{IEEEkeywords}
-openSSL, security vulnerability, debian
+OpenSSL, security vulnerability, debian
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -90,27 +88,40 @@ understand the first exploit referenced in \cite{1} in the old code,
 and see if a similar or identical exploit is still easy to introduce
 and reproduce. We'd also like to get a sense of how hard it would be
 for a malicious actor to introduce another similar exploit into the
-code -- for a similar mistake to happen in 2022.
+code -- for a similar mistake to happen in 2022. This would involve
+researching the past and current workflows for making potentially
+security-critical patches to both debian and the OpenSSL project at a
+minimum, and potentially other popular linux distributions as well.
+
+Open questions are, for example,
+
+\begin{itemize}
+\item What does it take to be a developer on one of these projects?
+\item How are patches reviewed?
+\item How formal is the patch review process, and have potential bugs
+  already been successfully caught and removed before introduction to
+  distributed code in the past?
+\end{itemize}
 
 \subsection{Goal}
 We'd like to reproduce the 2008 bug from the git commit of the version
-referenced in [2]. Then, we'd like to see if we can make a similar
-modification to the current code and demonstrate a similar working
-exploit (i.e. we'd like to derive a key and decrypt a file for
+referenced in \cite{2}. Then, we'd like to see if we can make a
+similar modification to the current code and demonstrate a similar
+working exploit (i.e. we'd like to derive a key and decrypt a file for
 example), and show that it could be very simple for a disgruntled
-employee or malicious actor to introduce a small patch to openssl in a
+employee or malicious actor to introduce a small patch to OpenSSL in a
 downstream distribution (or potentially to the project itself) that
 could make it very vulnerable, or alternatively demonstrate that the
 codebase has improved and is much harder to accidentally exploit this
-way. We may also investigate the current process in the debian
-distribution and the openssl project for adding patches.
-
+way. We will also investigate the current process in the debian
+distribution and the OpenSSL project for adding patches, and report on
+what we find.
 
 \section{Idea and Approach}
 
 First, we'd like to compile and demonstrate the vulnerability as it
 existed in 2008. Most likely this would involve creating a VM image
-with an old debian version, compiling an openSSL version with the
+with an old debian version, compiling an OpenSSL version with the
 patch specified in the debian bug report\cite{3}, linking
 \verb|ssh-keygen| to the library (which will be a re-creation of what
 was distributed in 2008), and write a simple program to guess the
@@ -136,11 +147,12 @@ the public key.
 First, we'd have a runnable 'exploit' that works on the old
 debian-modified openssl. This should demonstrate that it only takes a
 small change to openssl that could be made in any number of places to
-decrease the potential keyspace for private keys. We also would either
-demonstrate that that kind of vulnerability is still easy to
-introduce, potentially accidentally, or that the codebase and
-processes around introducing fixes have been fixed in debian and/or
-the openssl project.
+decrease the potential keyspace for private keys.
+
+We also would either demonstrate that that kind of vulnerability is
+still easy to introduce, potentially accidentally, or that the
+codebase and processes around introducing fixes have been fixed in
+debian and/or the openssl project.
 
 \section{Conclusion}
 We'd like to create an easy-to-exploit vulnerability in the current
