@@ -57,9 +57,12 @@ email address or ORCID}
 \maketitle
 
 \begin{abstract}
-This document is a model and instructions for \LaTeX.
-This and the IEEEtran.cls file define the components of your paper [title, text, heads, etc.]. *CRITICAL: Do Not Use Symbols, Special Characters, Footnotes, 
-or Math in Paper Title or Abstract.
+There have been catastrophic but small modifications to openssl in the
+past\cite{1}\cite{2} that drastically reduced the potential number of
+keys that could be generated during key generation. We'd like to see
+if a similar vulnerability that is easy to exploit could still be
+introduced into the codebase with a small modification to the base
+source of openssl.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -67,8 +70,15 @@ component, formatting, style, styling, insert
 \end{IEEEkeywords}
 
 \section{Introduction}
-This document is a model and instructions for \LaTeX.
-Please observe the conference page limits. 
+In 2008 a debian developer made a patch to openssl to fix valgrind
+warnings[2][3]. Parts of openssl were deliberately using uninitialized
+memory to add entropy for key generation, and this caused client
+programs that linked to openssl to generate error/warnings when
+developers tried to validate programs with valgrind. However, without
+this extra entropy the number of possible keys was drastically
+reduced. This was a very small code change that resulted in a very
+easy exploit. Programs like ssh that used openssl to generate keys now
+only had a few thousand potential keys [3].
 
 \section{Ease of Use}
 
@@ -273,16 +283,10 @@ For papers published in translation journals, please give the English
 citation first, followed by the original foreign-language citation \cite{b6}.
 
 \begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
-\bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
-\bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
-\bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
-\bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
-\bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
+
+\bibitem{1} https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/
+\bibitem{2} https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516
+\bibitem{3} https://research.swtch.com/openssl  
 \end{thebibliography}
-\vspace{12pt}
-\color{red}
-IEEE conference templates contain guidance text for composing and formatting conference papers. Please ensure that all template text is removed from your conference paper prior to submission to the conference. Failure to remove the template text from your paper may result in your paper not being published.
 
 \end{document}

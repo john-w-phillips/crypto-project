@@ -33,16 +33,17 @@ a similar mistake to happen.
 
 Goal
 
-We'd like to reproduce the 2008 bug and demonstrate a working exploit
-(i.e. we'd like to derive a key and decrypt a file for example), and
-show that it could be very simple for a disgruntled employee or
-malicious actor to introduce a small patch to openssl in a downstream
-distribution (or potentially to the project itself) that could make it
-very vulnerable, or alternatively demonstrate that the codebase has
-improved and is much harder to accidentally exploit this way. We may
-also investigate the current process in the debian distribution and
-the openssl project for adding patches.
-
+We'd like to reproduce the 2008 bug from the git commit of the version
+referenced in [2]. Then, we'd like to see if we can make a similar
+modification to the current code and demonstrate a similar working
+exploit (i.e. we'd like to derive a key and decrypt a file for
+example), and show that it could be very simple for a disgruntled
+employee or malicious actor to introduce a small patch to openssl in a
+downstream distribution (or potentially to the project itself) that
+could make it very vulnerable, or alternatively demonstrate that the
+codebase has improved and is much harder to accidentally exploit this
+way. We may also investigate the current process in the debian
+distribution and the openssl project for adding patches.
 
 Key idea/approach
 
