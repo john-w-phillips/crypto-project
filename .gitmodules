@@ -5,4 +5,5 @@
 	path = openssl-old
 	url = git@github.com:john-w-phillips/openssl.git
 [submodule "openssh-portable"]
+	path = openssh-portable
 	url = git@github.com:john-w-phillips/openssh-portable.git
