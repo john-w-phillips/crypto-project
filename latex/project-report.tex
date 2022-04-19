@@ -1,0 +1,103 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Security of OpenSSL Tool}
+
+\author{\IEEEauthorblockN{John Phillips}
+\textit{johphill@mines.edu}\\
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Abhaya Shrestha}
+\IEEEauthorblockA{\textit{ashrestha@mines.edu}}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Joe Granmoe}
+\IEEEauthorblockA{\textit{jgranmoe@mines.edu}}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Patrick Curran}
+\IEEEauthorblockA{\textit{pcurran@mines.edu}}
+\and
+\IEEEauthorblockN{5\textsuperscript{th} Collin McDade}
+\IEEEauthorblockA{\textit{collinmcdade@mines.edu}}
+\and
+\IEEEauthorblockN{6\textsuperscript{th} Noor Malik}
+\IEEEauthorblockA{\textit{nmalik@mines.edu}}
+}
+
+\maketitle
+
+\begin{abstract}
+There have been small but catastrophic modifications to openssl in the
+past\cite{1}\cite{2} that drastically reduced the potential number of
+keys that could be generated during key generation in the debian
+distribution. We've reproduced one from 2008 to get hands-on
+experience with how these kinds of accidents happen, and in the hopes
+of understanding how to avoid such a impactful mistake.
+\end{abstract}
+
+\begin{IEEEkeywords}
+OpenSSL, security vulnerability, debian
+\end{IEEEkeywords}
+
+\section{Introduction}
+\section{Background}
+In 2008 a debian developer made a patch to openssl to fix valgrind
+warnings\cite{2}\cite{3}. OpenSSL has a flexible system for generating
+random numbers that uses an interface-like approach with functions
+prefixed with \verb|RAND_*| delegating to a particular
+implementation. Since this API was designed for cryptographic
+applications, the random bytes generated need to not just satisfy
+particular statistical properties but be truly unpredictable. In order
+to acheive this property, this particular random number generator
+allows the user to add 'entropy' by feeding it buffers full of random
+bytes. These bytes could be from \verb|/dev/urandom|, the user, or
+somewhere else. When adding entropy in this way to the message
+digest-based random API, an internal hash state is update each time
+with the random bytes given by the user. The hash state then can be
+used to get random bytes back out of the system. 
+
+Now this particular implementation in \verb|md_rand.c|,
+\emph{deliberately} would `over-read' the user-provided buffer. The
+apparent thinking behind this was that if the code read uninitialized
+memory, this couldn't hurt things, and could only possibly help by
+potentially adding randomness.
+
+This behavior occurred in two places in \verb|md_rand.c|. Both of
+those places were actually critical to the entire random number
+generator. Because of the reading of uninitialized memory, any time a
+user of the ssl library did almost anything -- like generate a key,
+for example -- they would get disturbing warnings if they ran their
+program in the popular \verb|valgrind| tool.
+
+This was the source of a complaint that first came to the debian bug
+tracker\cite{2}. The debian developer quickly spotted the culprit code
+but didn't know what it did. Observing that commenting it out didn't
+cause anything to crash or obviously function incorrectly, he asked on
+the openssl development mailing list if it was okay to remove the two
+lines of code -- and got the go-ahead.
+
+Most linux distributions maintain small set of `patches' for each
+package they distribute. These patches normally are designed to fix
+critical bugs that haven't been fixed upstream or are in the process
+of being fixed,
+
+
+
+
+
+\begin{thebibliography}{00}
+
+\bibitem{1} https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/
+\bibitem{2} https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516
+\bibitem{3} https://research.swtch.com/openssl  
+\end{thebibliography}
+
+\end{document}
