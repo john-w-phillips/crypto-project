@@ -11,40 +11,25 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Course  Project Proposal}
+\title{Security of OpenSSL Tool}
 
 \author{\IEEEauthorblockN{John Phillips}
 \textit{johphill@mines.edu}\\
 \and
-\IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{2\textsuperscript{nd} Abhaya Shrestha}
+\IEEEauthorblockA{\textit{ashrestha@mines.edu}}
 \and
-\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{3\textsuperscript{rd} Joe Granmoe}
+\IEEEauthorblockA{\textit{jgranmoe@mines.edu}}
 \and
-\IEEEauthorblockN{4\textsuperscript{th} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{4\textsuperscript{th} Patrick Curran}
+\IEEEauthorblockA{\textit{pcurran@mines.edu}}
 \and
-\IEEEauthorblockN{5\textsuperscript{th} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{5\textsuperscript{th} Collin McDade}
+\IEEEauthorblockA{\textit{collinmcdade@mines.edu}}
 \and
-\IEEEauthorblockN{6\textsuperscript{th} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{6\textsuperscript{th} Noor Malik}
+\IEEEauthorblockA{\textit{nmalik@mines.edu}}
 }
 
 \maketitle
@@ -141,6 +126,11 @@ time since it knows that the keyspace is now much smaller. We could
 then for example forge a signature or decrypt a file encrypted with
 the public key.
 
+Next, we will investigate their upstream process on how they
+detect vulnerability on their code (do they have an automated,
+rigorous code review process etc.). This will show us that despite
+the possbility of developer error, how likely are we to see
+the vulnerability exposed to production environments.
 
 \section{Expected results}
 
@@ -154,14 +144,27 @@ still easy to introduce, potentially accidentally, or that the
 codebase and processes around introducing fixes have been fixed in
 debian and/or the openssl project.
 
+As far as the upstream process is concerned, if we find
+their process is rigorous, then OpenSSL is fairly secure
+for its most recent version (with the given computing power
+at the moment of the experiment). Otherwise, we will recommend
+some other alternaitve to OpenSSL.
+
 \section{Conclusion}
 We'd like to create an easy-to-exploit vulnerability in the current
 openssl source that is similar to the one inadvertently introduced
 into the debian source code in 2008 as documented in\cite{1}. If it's still possible to
 make such a change, this raises concerns about the security of an open
 source security-critical system like openssl.
+If we are not able to find easy-to-exploit vulnerability
+and our inverstigation of their contribution process
+shows rigorous code reviews and automation in place, 
+we will conclude that current
+version of OpenSSL (with the given computing power) is 
+a secure library for encryption. Otherwise, we will
+recommend other libraries to use as an alternative
+to openssl.
 
-\section*{References}
 \begin{thebibliography}{00}
 
 \bibitem{1} https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/
