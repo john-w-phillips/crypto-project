@@ -4,6 +4,30 @@
 To build the proposal, go to the `proposal` directory and type
 `make`. This will create `proposal.pdf` from the `proposal.tex` file.
 
+## Code
+
+The `openssl` repository has (currently) two modified branches:
+`debian-mod-point` -- the point where debian modified the code and
+caused the vulnerability. This code is the same as the code that
+debian began distributing in 2006. I (John) couldn't find the original code
+anywhere so I read the mailing list and implemented the change.
+
+The other branch, `hacked-ssl-for-running-exploit` contains SSL code
+that has been modified in the same way, _plus_ a way for a developer
+to set the PID that is normally mixed into the entropy message digest
+in openSSL. This allows you to run an exploit by repeatedly trying
+different PID 'seeds'.
+
+The `openssh-portable` repository has a branch `old-ssh` which
+contains code from that era modified to run the exploit by repeatedly
+trying out different keys. There are two key programs:
+`ssh-keyexploit.c` and `ssh-exploit-driver.bash`. `ssh-keyexploit.c`
+generates a trial key based on its command line arguments and tries to
+SSH into the host provided, exiting with success if it worked, failure
+if not. `ssh-exploit-driver.bash` iterates over all 32768 possible
+keys and runs `ssh-keyexploit.c` for each one.
+
+
 ## Running the exploit
 To demonstrate the exploit, we have two VMs, DebianExploiter and
 DebianExploited. On the exploited machine (DebianExploited) is the

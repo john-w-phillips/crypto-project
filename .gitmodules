@@ -1,8 +1,5 @@
-[submodule "openssl"]
-	path = openssl
-	url = https://github.com/openssl/openssl
 [submodule "openssl-old"]
-	path = openssl-old
+	path = openssl
 	url = git@github.com:john-w-phillips/openssl.git
 [submodule "openssh-portable"]
 	path = openssh-portable
