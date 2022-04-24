@@ -205,13 +205,142 @@ implementation errors?
 \section{Investigating the current code}
 
 \section{Processes in the OpenSSL project in place to prevent further exploits}
+   Exploring OpenSSL project contribution process,
+we looked into what it takes to be a committer in their repo, whether
+they have any kind of automated checking in place (CI or Continuous Integration),
+and what their approval process looks like.
+    Before we delve into the process, we need to define a few terms from
+their glossary.
+    \begin{enumerate}
+        \item \textbf{OMC (OpenSSL Management Committee)}: they oversee all
+        managerial and administrative aspects of the project. They are
+        the final authority for the project\cite{6}
+        \item \textbf{OTC (OpenSSL Technical Committee)}: they oversee all
+        technical aspects of the project\cite{6}.
+    \end{enumerate}
+\subsection{What it takes to be a Commiter of OpenSSL?}
+    To become a committer, one has to be granted access by the OMC on
+the recommendation of OTC\cite{7}. This access can be withdrawn at any time by
+a vote of the OMC\cite{8}. In order to maintain their committer status,
+a commiter must have authored or reviewed at least one commit within the
+previous two calendar quarters\cite{8}.
+    They expect committers to be experts in some part of low-level
+crypto library as well as generalists who contribute to all areas of
+codebase\cite{7}. Committers are expected to oversee the health of the
+project: fixing bugs, addressing open issues, reviewing contributions, and
+improving tests and documentation\cite{7}. According to OpenSSL, to be a commiter,
+one can start by contributing code, reading code style, and getting to know
+build and test system\cite{7}. In short, anyone can be a
+commiter as long as they are granted access by OMC on recommendation of OTC.
+Their contributions can range from small documentation fixes, spelling errors,
+to large code base contributions.
 
+\subsection{What automation checks does OpenSSL have to ensure code safety?}
+    Based off of their glossery, we were able to understand that OpenSSL uses
+Continuous Integration which is a suite of tests and checks that are run on
+every pull request, commit on a daily basis. Some of their tests include functional
+tests, performance testing, and fuzz testing\cite{9}. These kinds of tests
+are described as follows.
+    \begin{enumerate}
+        \item \textbf{Functional Tests}: given a set of inputs, it
+        will produce a correct set of outputs\cite{9}.
+        \item \textbf{Performance Tests}: These tests test
+        performance, and will be performed automatically
+        via CI on a regular basis for certain components. Examples include:
+        \begin{itemize}
+            \item Individual algorithm performance operating over different
+            input sizes
+            \item SSL/TLS handshake time over multiple handshakes and
+            for different protocol versions and resumption/non-resumption
+            handshake.
+        \end{itemize}\cite{9}.
+        \item \textbf{Fuzz Tests}: Systematic methodology that is used
+        to find buffer overruns (remote execution); unhandled
+        exceptions, read access violations (AVs), and thread hangs
+        (permanent denial-of-service), and memory spikes (temporary denial-of-service)\cite{10}.
+    \end{enumerate}
+According to their testing policy, a pull request does not require testing
+if the changes are as follows\cite{9}.
+\begin{itemize}
+    \item Documentation (including CHANGES/NEWS file changes)
+    \item The test suite
+    \item perl utilities
+    \item include files
+    \item build system
+    \item demos
+\end{itemize}
+Additionally, they recommend adding fuzz testing when implementing significant new functional tests
+or at least consider adding fuzz testing when refactoring to check all corner cases are covered\cite{9}.
+OpenSSL particulary uses either LibFuzzer or AFL to do fuzz testing \cite{11}. While performance
+tests improve the functionality of OpenSSL, fuzz testing and functional testing helped us ensure
+that OpenSSL codebase is at least sanity checked. Fuzz tests especially help since they are
+basically dynamic analysis detection for any vulnerabilities or bugs in the codebase.
+\subsection{What does their approval and code review process look like?}
+    OpenSSL approval and code reviews process are as follows.
+    \begin{itemize}
+        \item OpenSSL pull requests are reviewed and approved by at least two committers, one of
+        whom must be an OTC member. Neither of the reviewers can be the author of the submission\cite{7}.
+        Only exception to this policy is during the release process when the author's review does
+        cout towards the two needed reviews for the automated release process and NEWS and CHANGES
+        file updates\cite{7}.
+        \item In case two committers make a joint submission, they can review each other's
+        code, but not their own. Additionally, a third reviewer will be required\cite{7}.
+        \item An OMC/OTC member may apply a needs OMC decision label to a submission which
+        can hold the submission. This hold may only be removed by OTC/OMC member who
+        put the hold or the OTC/OMC\cite{7}.
+        \item Approved submission (besides autmated release process and NEWS and CHANGES
+        file updates) will only be applied
+        after 24-hour delay from approval. An exception to the delay exists
+        for build and test breakage fix approvals which will be flagged with the
+        severity: urgent label\cite{7}.
+    \end{itemize}
+    Additionally, on their commit workflow, their public github repository is just a mirror
+    and pulls from the real repo where only committers have
+    access\cite{7} (When someone becomes a committer, OpenSSL will
+    send instructions to get commit access to the repository\cite{7}). 
+    Finally, they also have strict documentation design process whenever 
+    minor or major code changes the design, and
+    changes to existing public API functions and data are forbidden
+    \cite{9}. However, they encourage a new API call to be implemented
+    if need be as a minor release \cite{9}. From this information, we
+    can definitely tell that today it is difficult to be able to commit
+    anything without prior granted permissions and approval to OpenSSL. Futhermore,
+    even if changes were to occur, they always run their automation
+    process to detect any defects or vulnerabilities with their test suites which
+    is very assuring for a user of OpenSSL.\\
+    \quad However, there are still chances that
+    a defect or vulnerability could be shipped out. Particularly, when
+    they suggested that refactors do not need a test but
+    recommend Fuzz testing to cover edge cases. In the
+    refactor case, there is a possibility that
+    the committer misses an edge case in fuzz
+    testing and creates a bug or vulnerability.
+    Another challenge of a cryptographic tool
+    such as OpenSSL is that professionals do not know how to
+    test for security. An algorithm implementation is
+    only secure if an attacker cannot decipher or find
+    vulnerabilities to exploit for the algorithm. Futhermore,
+    Fuzz tests are basically just shooting in the dark
+    and hoping to find a vulnerability before
+    the adversary finds it.
+    Nonetheless, we have to say their process
+    for who gets to commit code to the master is solid; however,
+    there is no assurance that vulnerability will not be shipped out.
+    The best we could do is hope that the code review and automation
+    process detects a defect or vulerability and prevents it from being
+    shipped out.
 \begin{thebibliography}{00}
 \bibitem{1} \verb|https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/|
 \bibitem{2} \verb|https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516|
 \bibitem{3} \verb|https://research.swtch.com/openssl|
 \bibitem{4} \verb|https://marc.info/?l=openssl-dev&m=114652287210110&w=2|
 \bibitem{5}  \verb|https://heartbleed.com/|
+\bibitem{6} \verb|https://www.openssl.org/policies/glossary.html|
+\bibitem{7} \verb| https://www.openssl.org/policies/general/committer-policy.html|
+\bibitem{8} \verb|https://www.openssl.org/policies/omc-bylaws.html|
+\bibitem{9} \verb|https://www.openssl.org/policies/technical/|
+\bibitem{10} \verb|https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN|
+\bibitem{11} \verb|https://github.com/openssl/openssl/tree/master/fuzz|
 \end{thebibliography}
 
 \end{document}
