@@ -27,6 +27,34 @@ SSH into the host provided, exiting with success if it worked, failure
 if not. `ssh-exploit-driver.bash` iterates over all 32768 possible
 keys and runs `ssh-keyexploit.c` for each one.
 
+### Building openssl
+
+The process for building either branch of openssl is the same:
+
+```sh
+$ ./config shared
+$ make install # should be done as root
+```
+
+This will install SSL in `/usr/local/ssl`. For whatever reason, SSL
+has a nonstandard practice of putting their libraries into an `ssl`
+subdirectory, rather than `/usr/local/lib`, `/usr/local/include`. In
+order to run programs against these libraries you will need to
+configure `LD_LIBRARY_PATH` accordingly.
+
+
+### Building openssh-portable
+
+This only needs to be done on the exploiter side if you are using a
+2008-vintage debian VM. Otherwise you will have to do it for both
+machines.
+
+```sh
+$ autoreconf
+$ CFLAGS="-I/usr/local/ssl/include -L/usr/local/ssl/lib" ./configure --with-ssl-dir=/usr/local/ssl/
+$ make -j
+```
+
 
 ## Running the exploit
 To demonstrate the exploit, we have two VMs, DebianExploiter and
@@ -38,19 +66,36 @@ which is simply an automation of what any debian user would do to
 generate a key and add it to their list of keys allowed to SSH into
 the host.
 	
-On the exploited machine, there is a modified version of the
+### Using the virtual machines
+
+There are two VM images, `DebianExploited.vmdk` and
+`DebianExploiter.vmdk`. To reduce the fuss associated with setting up
+a VM network, we've included a script `run-vms.sh` in the `vms/`
+folder. Due to size limitations of github, the vm images themselves
+are not there but can be obtained from the ADIT lab (i.e. brown lab)
+in the directory `~johphill/cryptography-project`. *This script
+requires root/sudo priviledges.* This is required to set up networking
+so that the machines can share an isolated network.
+
+ On the exploited machine, there is a modified version of the
 `openssh-portable` code (OpenSSH) that generates candidate keys based
 on different PID seeds and tries to SSH into the exploited machine.
 
 On DebianExploited:
 
+	export LD_LIBRARY_PATH=/usr/local/ssl/lib:/usr/local/lib:/usr/lib:/lib
 	./generate-keys.sh
+	
+The `export LD_LIBRARY_PATH` is necessary to link against the 'hacked'
+version of SSL, which we installed in the [building
+section](#building-openssl).
 
 On DebianExploiter:
 	
 	cd openssh-portable
+	export LD_LIBRARY_PATH=/usr/local/ssl/lib:/usr/local/lib:/usr/lib:/lib	
 	./ssh-exploit-driver.bash <IP-OF-DEBIAN-EXPLOITED>
-	
+
 Eventually, you'll get the message:
 
 	Success with PID seed <some-pid>, file in trail_identity, trial_identity.pub
@@ -61,3 +106,6 @@ guessing the private key, which has been put into
 
 	./ssh -i trial_identity -l ssluser <IP-OF-DEBIAN-EXPLOITED>
 
+Note that *both* machines use modified versions of the SSL library and
+that you must ensure that the modified versions are being linked
+against. You can use `ldd` to verify this.
