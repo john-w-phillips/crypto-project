@@ -3,6 +3,7 @@
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{csquotes}
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
@@ -36,11 +37,13 @@
 
 \begin{abstract}
 There have been small but catastrophic modifications to openssl in the
-past\cite{1}\cite{2} that drastically reduced the potential number of
-keys that could be generated during key generation in the debian
-distribution. We've reproduced one from 2008 to get hands-on
-experience with how these kinds of accidents happen, and in the hopes
-of understanding how to avoid such a impactful mistake.
+past\cite{1}\cite{2}\cite{5} that cause massive security problems and
+in some cases exploits that can disclose private keys. We explore in
+depth one such instance, a modification made to the OpenSSL package
+distributed in debian that resulted in only 32,768 possible keys that
+could be generated. We also explore similarities to
+heartbleed. Finally, we investigate methods that have been put in
+place to prevent such bugs from happening in the future.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -77,6 +80,14 @@ user of the ssl library did almost anything -- like generate a key,
 for example -- they would get disturbing warnings if they ran their
 program in the popular \verb|valgrind| tool.
 
+Most linux distributions maintain small set of `patches' for each
+package they distribute. These patches normally are designed to fix
+critical bugs that haven't been fixed upstream or are in the process
+of being fixed. So although the debian project doesn't maintain
+OpenSSL, they could patch the particular version of OpenSSL
+distributed by debian. And that was the solution arrived at in the bug
+ticket and over email \cite{2}\cite{4}.
+
 This was the source of a complaint that first came to the debian bug
 tracker\cite{2}. The debian developer quickly spotted the culprit code
 but didn't know what it did. Observing that commenting it out didn't
@@ -84,20 +95,123 @@ cause anything to crash or obviously function incorrectly, he asked on
 the openssl development mailing list if it was okay to remove the two
 lines of code -- and got the go-ahead.
 
-Most linux distributions maintain small set of `patches' for each
-package they distribute. These patches normally are designed to fix
-critical bugs that haven't been fixed upstream or are in the process
-of being fixed,
+\begin{displayquote}
+\begin{verbatim}
+List:       openssl-dev
+Subject:    Re: Random number generator, uninitialised data and valgrind.
+From:       Ulf_Möller <ulf () openssl ! org>
+Date:       2006-05-01 22:34:12
+Message-ID: 44568CE4.9020906 () openssl ! org
+[Download RAW message or body]
+
+Kurt Roeckx schrieb:
+> What I currently see as best option is to actually comment out
+> those 2 lines of code.  But I have no idea what effect this
+> really has on the RNG.  The only effect I see is that the pool
+> might receive less entropy.  But on the other hand, I'm not even
+> sure how much entropy some unitialised data has.
+>   
+Not much. If it helps with debugging, I'm in favor of removing them. 
+(However the last time I checked, valgrind reported thousands of bogus 
+error messages. Has that situation gotten better?)
+\end{verbatim}
+\end{displayquote}
+\cite{4}
+
+The debian developer then applied the patch and distributed the debian
+version of OpenSSL with this critical vulnerability built in. This
+vulnerability was distributed to all users of debian from 2006 to
+2008\cite{1}. During that entire time, any code using the random
+number generator could only really have 32,767 possible outputs from
+the random number generator. Examples of affected functions included
+TLS modules and SSH key generation -- actually, anything that
+generated RSA keys was vulnerable.
+
+\section{Recreating the 2008 bug}
+
+In order to gain a better understanding of exactly how the bug worked,
+and how easy (or difficult) it would be to exploit such a flaw, we
+used virtual machines and code from the 2008 era to see what
+exploiting the vulnerability might look like. The basic idea was to
+create two virtual machines. One would be the exploited machine -- a
+stand-in for a server on the Internet or other network that had an
+open SSH port that was believed to be secure. The other machine would
+try to access the target server over SSH by repeatedly generating
+trial keys until it was able to successfully get in. Although this is
+not as simple as just writing code to guess the key and compares two
+files, it is arguably a more realistic demonstration of how exploits
+really work, and a better way of understanding them, putting the
+`applied' in `applied cryptography'.
+
+\subsection{Code modifications}
+First, we created two different versions of the OpenSSL code. The
+first one had the two lines that the debian developer asked about on
+the OpenSSL mailling list commented out (see \cite{4}), and nothing
+more. It was a re-creation of what existed in the debian project from
+2006-2008. We looked for the exact code (for example, a .deb binary
+distribution, or the actual patchsets applied to the OpenSSL project)
+on the Internet but were unable to find it (links pointing to the
+patches were all dead, possibly in a deliberate attempt by debian to prevent
+anyone accidentally using the code again).
+
+The next branch of the OpenSSL code was similar to the first except it
+had a way to manually set the only real source of variablility left to
+the random number generator -- the PID (process ID). We did this by
+replacing calls to \verb|getpid()| in \verb|md_rand.c| to references
+to a static variable in \verb|md_rand.c| called \verb|fake_pid|. We
+also introduced a globally-visible function called
+\verb|RAND_exploit_set_pid()|, to allow client code to set the PID.
 
 
+\subsection{Virtual machine setup}
+We built two virtual machines based on debian 5. The machines were
+connected to a single virtual switch, and had static IPs assigned. On
+one virtual machine, we built and installed the re-created
+debian-distributed OpenSSL. We used \verb|ssh-keygen| to create and
+authorize a key as an authorized SSH key on that host.
 
+On the other (attacker) machine, we used a program derived from
+\verb|ssh-keygen| to try to SSH to the target machine with a given PID
+seed. That program then was repeatedly invoked by another script that
+iterated over all possible PIDs, from 1 to 32,768 (in 2008 that was
+the number of possible PIDs).
 
+The results were as expected -- the attacker machine was able to
+generate the public/private key pair of the target machine within
+fifteen to twenty minutes. On a fresh boot, because there haven't been
+as many processes run, it takes only about five minutes.
+
+\subsection{Running the exploit}
+
+\subsection{Alternative approaches}
+
+\section{Similarities to Heartbleed}
+The debian bug bears certain similarities to another bug that occurred
+in 2014 -- Heartbleed\cite{4}. Both bugs compromised private keys, and
+both were not the result of any protocol design errors, cryptanalytic
+breakthroughs, or any other issue commonly learned about in a
+cryptography class. Instead, both errors were the result of human
+error. Simple, and (in hindsight) rather obvious bugs made their way
+into OpenSSL packages that were distributed to <how many>
+machines<CITE!>.
+
+Both bugs were the result of reading into memory regions that were not
+intended to be read into, which wouldn't even be possible in many
+other languages.
+
+This raises the question of how, if possible, to catch such simple
+implementation errors?
+
+\section{Investigating the current code}
+
+\section{Processes in the OpenSSL project in place to prevent further exploits}
 
 \begin{thebibliography}{00}
-
-\bibitem{1} https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/
-\bibitem{2} https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516
-\bibitem{3} https://research.swtch.com/openssl  
+\bibitem{1} \verb|https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/|
+\bibitem{2} \verb|https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516|
+\bibitem{3} \verb|https://research.swtch.com/openssl|
+\bibitem{4} \verb|https://marc.info/?l=openssl-dev&m=114652287210110&w=2|
+\bibitem{5}  \verb|https://heartbleed.com/|
 \end{thebibliography}
 
 \end{document}
