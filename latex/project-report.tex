@@ -4,7 +4,9 @@
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{csquotes}
-\usepackage{algorithmic}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -119,7 +121,7 @@ Not much. If it helps with debugging, I'm in favor of removing them.
 error messages. Has that situation gotten better?)
 \end{verbatim}
 \end{displayquote}
-\caption A reply to the email from the Debian Developer telling him to go ahead and modify the OpenSSL code.\cite{4}
+\caption{A reply to the email from the Debian Developer telling him to go ahead and modify the OpenSSL code.\cite{4}}
 \end{figure*}
 
 
@@ -468,28 +470,28 @@ substantially since the 2008 debian OpenSSL bug was caught, the
 heartbleed vulnerability notwithstanding.
     
 \begin{thebibliography}{00}
-\bibitem{1} \verb|https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/|
-\bibitem{2} \verb|https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516|
-\bibitem{3} \verb|https://research.swtch.com/openssl|
-\bibitem{4} \verb|https://marc.info/?l=openssl-dev&m=114652287210110&w=2|
-\bibitem{5} \verb|https://heartbleed.com/|
-\bibitem{6} \verb|https://www.openssl.org/policies/glossary.html|
-\bibitem{7} \verb|https://www.openssl.org/policies/general/committer-policy.html|
-\bibitem{8} \verb|https://www.openssl.org/policies/omc-bylaws.html|
-\bibitem{9} \verb|https://www.openssl.org/policies/technical/|
-\bibitem{10} \verb|https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN|
-\bibitem{11} \verb|https://github.com/openssl/openssl/tree/master/fuzz|
-\bibitem{12} \verb|https://doi.org/10.6028/NIST.SP.800-90Ar1|
+\bibitem{1} \url{https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/}
+\bibitem{2} \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516}
+\bibitem{3} \url{https://research.swtch.com/openssl}
+\bibitem{4} \url{https://marc.info/?l=openssl-dev&m=114652287210110&w=2}
+\bibitem{5} \url{https://heartbleed.com/}
+\bibitem{6} \url{https://www.openssl.org/policies/glossary.html}
+\bibitem{7} \url{https://www.openssl.org/policies/general/committer-policy.html}
+\bibitem{8} \url{https://www.openssl.org/policies/omc-bylaws.html}
+\bibitem{9} \url{https://www.openssl.org/policies/technical/}
+\bibitem{10} \url{https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN}
+\bibitem{11} \url{https://github.com/openssl/openssl/tree/master/fuzz}
+\bibitem{12} \url{https://doi.org/10.6028/NIST.SP.800-90Ar1}
 \bibitem{13} Salz, Richard, OpenSSL Source code, commit da8fc25a989cf4f4d26d626a85477e8a9282da12, June, 2017.
 \bibitem{14} Salz, Richard, OpenSSL Source code, commit 75e2c877650444fb829547bdb58d46eb1297bc1a, August 2017.
 \bibitem{15} OpenSSL Project, ``\verb|RAND_DRBG|'', OpenSSL
   Documentation,
-  \verb|https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html|
+  \url{https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html}
 \end{thebibliography}
 \appendices{}
 \section{Building and running the exploit}
 For the project we built a git repository found at
-\verb|https://github.com/john-w-phillips/crypto-project|. The file
+\url{https://github.com/john-w-phillips/crypto-project}. The file
 \verb|README.md| there contains detailed information about running the
 exploit but we include some here as a general overview.
 
@@ -499,9 +501,10 @@ First, we'll cover alterations we made to the OpenSSL code.
 We added a subrepository in the \verb|openssl| folder that contains a
 mirror of the OpenSSL git repository. From there we were able to
 analyze the state of OpenSSL code from several points in time. To make
-things easy we checked out these points in time on branches.
+things easy we checked out these points in time on branches. See
+Table \ref{branches} for details.
 
-\begin{table}[!bp]
+\begin{table}[htbp]
   \centering
   \begin{tabular}{|l|l|}
     \hline
@@ -510,7 +513,8 @@ things easy we checked out these points in time on branches.
     \verb|hacked-ssl-for-running-exploit| & Code we used to run the exploit. \\ \hline
     \verb|master| & Current OpenSSL code \\ \hline
   \end{tabular}
-  \caption Branches in the openssl subrepository and their function.
+  \caption{Branches in the openssl subrepository and their function.}
+  \label{branches}
 \end{table}
 
 To build this code you can read the \verb|INSTALL| file. Basically the
@@ -522,19 +526,60 @@ $ make -j
 $ make install # if needed.
 \end{verbatim}
 
-With OpenSSL built we can do several things with it.
+This will install ssl libraries and headers in \verb|/usr/local|. If
+SSL is already installed, you may need to modify
+\verb|LD_LIBRARY_PATH| to link existing executables against the
+compiled SSL libraries.  With OpenSSL built we can do several things
+with it.
 
 \subsection{The OpenSSH Repository}
 One way to take advantage of the vulnerability in question was to
 attack SSH keys. We decided to demonstrate how such an attack would
 work. To do so, we used the standard \verb|ssh-keygen| on the target
-box, but a heavily modified version of this program on the attacker
-box to iteratively generate the potential SSH keys that a machine with
-the flawed code could have, and try them out, using a brute-force
-style attack.
+box (one that came with the debian distribution -- ssh had no built-in
+vulnerability other than its dependency on OpenSSL), but a heavily
+modified version of this program on the attacker box to iteratively
+generate the potential SSH keys that a machine with the flawed code
+could have, and try them out, using a brute-force style attack. There
+are two components to this: \verb|ssh-exploit-driver.bash| and
+\verb|ssh-keyexploit.c|. The \verb|ssh-exploit-driver.bash| script
+takes an IP address and iterates over all possible PID seeds,
+1-32,768, and runs \verb|ssh-keyexploit.c| with each one.
 
+See Algorithm \ref{ssh-keyexploit} for how \verb|ssh-keyexploit.c|
+works.
 
+\begin{algorithm}
+  \caption{SSH key exploit}\label{ssh-keyexploit}
+
+  \begin{algorithmic}[1]
+    \Procedure{exploit}{$IP,PID$}
+    \State Set the PID in the OpenSSL modified library from $PID$
+    \State $rsa_{pub}, rsa_{priv} \gets$ Modified OpenSSL generated key with $PID$ as only source of variability.
+    \State $success \gets$ Try to SSH into host given by $IP$ with $rsa_{priv}$.
+    \If{$success$}
+    \State Report success
+    \Else
+    \State Report Failure
+    \EndIf
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+We run the exploit by running the script with the IP address of the
+target machine. With the provided virtual machines, this would look like this:
+
+\begin{verbatim}
+$ ./ssh-exploit-driver.bash 10.0.1.5
+\end{verbatim}
+
+Eventually you get the output:
+
+\begin{verbatim}
+INSERT OUTPUT
+\end{verbatim}
 
 \section{Measuring effects of unit tests}
+
 \section{Measuring test coverage}
 \end{document}
