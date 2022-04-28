@@ -95,8 +95,11 @@ cause anything to crash or obviously function incorrectly, he asked on
 the openssl development mailing list if it was okay to remove the two
 lines of code -- and got the go-ahead.
 
+\begin{figure*}[!t]
+\centering
 \begin{displayquote}
 \begin{verbatim}
+
 List:       openssl-dev
 Subject:    Re: Random number generator, uninitialised data and valgrind.
 From:       Ulf_Möller <ulf () openssl ! org>
@@ -116,7 +119,9 @@ Not much. If it helps with debugging, I'm in favor of removing them.
 error messages. Has that situation gotten better?)
 \end{verbatim}
 \end{displayquote}
-\cite{4}
+\caption A reply to the email from the Debian Developer telling him to go ahead and modify the OpenSSL code.\cite{4}
+\end{figure*}
+
 
 The debian developer then applied the patch and distributed the debian
 version of OpenSSL with this critical vulnerability built in. This
@@ -182,6 +187,11 @@ fifteen to twenty minutes. On a fresh boot, because there haven't been
 as many processes run, it takes only about five minutes.
 
 \subsection{Running the exploit}
+Since the virtual machines are connected over a virtual, network, to run the
+exploit, we simply boot them and run a script on the attacker machine
+that will eventually break the key of the target machine. The attacker
+script will then write the public/private key pair to a file. See the
+appendix for details.
 
 \subsection{Alternative approaches}
 
@@ -189,20 +199,92 @@ as many processes run, it takes only about five minutes.
 The debian bug bears certain similarities to another bug that occurred
 in 2014 -- Heartbleed\cite{4}. Both bugs compromised private keys, and
 both were not the result of any protocol design errors, cryptanalytic
-breakthroughs, or any other issue commonly learned about in a
-cryptography class. Instead, both errors were the result of human
-error. Simple, and (in hindsight) rather obvious bugs made their way
-into OpenSSL packages that were distributed to <how many>
-machines<CITE!>.
+breakthroughs that allowed algorithms to be broken, or any other issue
+commonly learned about in a cryptography class. Instead, both errors
+were the result of human error. Simple, and (in hindsight) rather
+obvious bugs made their way into OpenSSL packages that were
+distributed to an untold number of machines.
 
-Both bugs were the result of reading into memory regions that were not
-intended to be read into, which wouldn't even be possible in many
-other languages.
+With heartbleed, the issue was simply a missing boundary
+check<CITE>. First, code was added to allow for an extension to the
+SSL/TLS protocol that sent `heartbeats'. This allows for the SSL
+connection to be kept alive <CITE>. The fix was only a few lines of
+code<CITE>.
+
+Although one bug was an alteration of working code and the other was
+adding a buggy feature, the critical piece of both involved reading
+past array bounds. In the debian bug, a call to \verb|MD_Update()| was
+reading past initialized memory into unused memory and caused a
+valgrind error, which triggered the faulty fix. In Heartbleed, a
+boundary check was not made that allowed attackers to read
+uninitialized memory.
 
 This raises the question of how, if possible, to catch such simple
-implementation errors?
+implementation errors? Possible solutions are using CI/CD and a good
+automated test suite that has high code coverage and covers
+edge-cases. We can see that both bugs would have been stopped if:
+
+\begin{itemize}
+  \item The OpenSSL library was designed from the start to use static
+    and dynamic analysis tools like valgrind (no false positives as in
+    the case of the debian bug, and possible warnings in the case of
+    Heartbleed), sanitizers, and static code analysis tools like \verb|cppcheck|.
+  \item The OpenSSL library had high-coverage functional testing, and
+    a test suite that was automatically run before anyone distributed
+    a new or modified OpenSSL. This can be accomplished with compiler
+    tools that generate test coverage data like \verb|gcov| and
+    \verb|lcov|.
+\end{itemize}
+
+In the next section we examine if this situation has improved.
 
 \section{Investigating the current code}
+
+\subsection{Architectural differences}
+In the current code, the old \verb|md_rand.c| has been removed. It was
+renamed to \verb|ossl_rand.c| in June of 2017 \cite{13}, and removed
+in August, to be replaced by the DRBG api\cite{14}. The DRBG api is
+based on the NIST standard NIST SP 800-90A, for `Deterministic Random
+Number Generator' \cite{10}\cite{15}.
+
+The current code also has a much greater unit test coverage in the
+\verb|test/| directory. Where previously there were a few very simple
+and esoteric tests based on shell scripts to check basic correctness
+-- for example, the file \verb|test/trsa| is a shell script that tests
+if the \verb|openssl rsa| command can convert RSA keys between
+different plaintext formats -- there are now much more comprehensive
+tests that test the DRBG for duplicate results. If these had been in
+place before the debian key bug, perhaps it never would have happened.
+
+\subsection{Code quality improvements}
+We were able to demonstrate that the valgrind errors observed in
+\cite{2} actually were visible in the unit tests themselves in the old
+OpenSSL (version \verb|0.9.7e|), when running the test \verb|exptest|
+in the \verb|test| directory (see Appendix A for details). Not only
+that but the OpenSSL code in general from that era was littered with
+valgrind errors, with valgrind not counting more errors on some tests
+because there were so many. Using the \verb|lcov| tool, code coverage
+was measured at around 42\%, covered in Appendix A. This left lots of
+room for bugs to slip through, and none of the tests failed on the
+branch that contained the debian modifications -- so the debian
+developer had no way to test his work other than trust in the mailing
+list.
+
+The current state of the code (the \verb|master| branch as of March
+25, 2022) is certainly better, although perhaps by not as much as
+would be ideal. We ran the functional test suite in the \verb|test/|
+directory to see code coverage, using the same method for
+\verb|0.9.7e|. Code coverage improved to a total of 66\% of lines (see
+Appendix A for how to get this information for yourself). We noticed
+that some of the implementation files for the DRBG, in
+\verb|providers/implementations/rands/drbg.c| had many uncovered
+edge-cases. Although the code may work now, uncovered edge cases in
+the test suite mean that the code isn't defended from potential future
+changes like the one made by the debian developer in 2006.
+
+We did confirm that similar alternations to the DRBG code to the ones
+made in 2006 by the debian developer \emph{did} cause unit tests to
+fail in the newer test suite (version 3.0.0).
 
 \section{Processes in the OpenSSL project in place to prevent further exploits}
 
@@ -319,7 +401,7 @@ for any vulnerabilities or bugs in the codebase.
           only be removed by OTC/OMC member who put the hold or the
           OTC/OMC\cite{7}.
 
-        \item Approved submission (besides autmated release process
+        \item Approved submission (besides automated release process
           and NEWS and CHANGES file updates) will only be applied
           after 24-hour delay from approval. An exception to the delay
           exists for build and test breakage fix approvals which will
@@ -361,6 +443,30 @@ for any vulnerabilities or bugs in the codebase.
     and automation process detects a defect or vulerability and
     prevents it from being shipped out.
 
+\section{Conclusion}
+To understand how a vulnerability like the 2008 debian OpenSSL bug
+happens and can be exploited, we read the code from that period and
+built an exploit that would be able to unlock affected machines using
+SSH keys.
+
+Next, we did a survey of the state of the code then and now to see if
+the introduction of such code was due to incompetence on the debian
+developer's part, or an understandable error that no automated tools
+were in place to catch. We concluded that there was no easy way to
+tell if the code modification would adversely affect the security of
+the library, and that, furthermore, the debian developer was given the
+go-ahead.
+
+The current state of the code is much better however, having more
+thorough unit-testing coverage that can catch more accidental errors
+made by OpenSSL developers or package distributors. Furthermore, the
+current implementation of OpenSSL's random number generator is based
+on a specification and is therefore much easier to reason about.
+
+We concluded that the security of the OpenSSL tool has increased
+substantially since the 2008 debian OpenSSL bug was caught, the
+heartbleed vulnerability notwithstanding.
+    
 \begin{thebibliography}{00}
 \bibitem{1} \verb|https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/|
 \bibitem{2} \verb|https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516|
@@ -368,11 +474,67 @@ for any vulnerabilities or bugs in the codebase.
 \bibitem{4} \verb|https://marc.info/?l=openssl-dev&m=114652287210110&w=2|
 \bibitem{5} \verb|https://heartbleed.com/|
 \bibitem{6} \verb|https://www.openssl.org/policies/glossary.html|
-\bibitem{7} \verb| https://www.openssl.org/policies/general/committer-policy.html|
+\bibitem{7} \verb|https://www.openssl.org/policies/general/committer-policy.html|
 \bibitem{8} \verb|https://www.openssl.org/policies/omc-bylaws.html|
 \bibitem{9} \verb|https://www.openssl.org/policies/technical/|
 \bibitem{10} \verb|https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN|
 \bibitem{11} \verb|https://github.com/openssl/openssl/tree/master/fuzz|
+\bibitem{12} \verb|https://doi.org/10.6028/NIST.SP.800-90Ar1|
+\bibitem{13} Salz, Richard, OpenSSL Source code, commit da8fc25a989cf4f4d26d626a85477e8a9282da12, June, 2017.
+\bibitem{14} Salz, Richard, OpenSSL Source code, commit 75e2c877650444fb829547bdb58d46eb1297bc1a, August 2017.
+\bibitem{15} OpenSSL Project, ``\verb|RAND_DRBG|'', OpenSSL
+  Documentation,
+  \verb|https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html|
 \end{thebibliography}
+\appendices{}
+\section{Building and running the exploit}
+For the project we built a git repository found at
+\verb|https://github.com/john-w-phillips/crypto-project|. The file
+\verb|README.md| there contains detailed information about running the
+exploit but we include some here as a general overview.
 
+First, we'll cover alterations we made to the OpenSSL code.
+
+\subsection{The OpenSSL Repository}
+We added a subrepository in the \verb|openssl| folder that contains a
+mirror of the OpenSSL git repository. From there we were able to
+analyze the state of OpenSSL code from several points in time. To make
+things easy we checked out these points in time on branches.
+
+\begin{table}[!bp]
+  \centering
+  \begin{tabular}{|l|l|}
+    \hline
+    Branch name & Function \\ \hline
+    \verb|debian-mod-point| & The code that was distributed by Debian starting in 2006 \\ \hline
+    \verb|hacked-ssl-for-running-exploit| & Code we used to run the exploit. \\ \hline
+    \verb|master| & Current OpenSSL code \\ \hline
+  \end{tabular}
+  \caption Branches in the openssl subrepository and their function.
+\end{table}
+
+To build this code you can read the \verb|INSTALL| file. Basically the
+steps are as follows:
+
+\begin{verbatim}
+$ ./config shared
+$ make -j
+$ make install # if needed.
+\end{verbatim}
+
+With OpenSSL built we can do several things with it.
+
+\subsection{The OpenSSH Repository}
+One way to take advantage of the vulnerability in question was to
+attack SSH keys. We decided to demonstrate how such an attack would
+work. To do so, we used the standard \verb|ssh-keygen| on the target
+box, but a heavily modified version of this program on the attacker
+box to iteratively generate the potential SSH keys that a machine with
+the flawed code could have, and try them out, using a brute-force
+style attack.
+
+
+
+\section{Measuring effects of unit tests}
+\section{Measuring test coverage}
 \end{document}
