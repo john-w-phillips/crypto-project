@@ -481,7 +481,9 @@ heartbleed vulnerability notwithstanding.
 \bibitem{9} \url{https://www.openssl.org/policies/technical/}
 \bibitem{10} \url{https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN}
 \bibitem{11} \url{https://github.com/openssl/openssl/tree/master/fuzz}
-\bibitem{12} \url{https://doi.org/10.6028/NIST.SP.800-90Ar1}
+\bibitem{12} ``Recommendation for Random Number Generation Using
+  Deterministic Random Bit Generators'', revision 1,
+  \url{https://doi.org/10.6028/NIST.SP.800-90Ar1}, June 2015.
 \bibitem{13} Salz, Richard, OpenSSL Source code, commit da8fc25a989cf4f4d26d626a85477e8a9282da12, June, 2017.
 \bibitem{14} Salz, Richard, OpenSSL Source code, commit 75e2c877650444fb829547bdb58d46eb1297bc1a, August 2017.
 \bibitem{15} OpenSSL Project, ``\verb|RAND_DRBG|'', OpenSSL
@@ -504,7 +506,7 @@ analyze the state of OpenSSL code from several points in time. To make
 things easy we checked out these points in time on branches. See
 Table \ref{branches} for details.
 
-\begin{table}[htbp]
+\begin{table*}[!t]
   \centering
   \begin{tabular}{|l|l|}
     \hline
@@ -515,7 +517,7 @@ Table \ref{branches} for details.
   \end{tabular}
   \caption{Branches in the openssl subrepository and their function.}
   \label{branches}
-\end{table}
+\end{table*}
 
 To build this code you can read the \verb|INSTALL| file. Basically the
 steps are as follows:
@@ -570,16 +572,81 @@ We run the exploit by running the script with the IP address of the
 target machine. With the provided virtual machines, this would look like this:
 
 \begin{verbatim}
-$ ./ssh-exploit-driver.bash 10.0.1.5
+$ ./ssh-exploit-driver.bash 10.10.1.5
 \end{verbatim}
 
 Eventually you get the output:
 
 \begin{verbatim}
-INSERT OUTPUT
+Success with PID seed <PID>, file in trial_identity, trial_identity.pub
 \end{verbatim}
 
+You can then SSH to the target machine with the \verb|trial_identity|
+file.
+
 \section{Measuring effects of unit tests}
+As part of our analysis we wanted to see if the new unit test
+framework (since 2008) would catch the kind of error the debian
+developer introduced in 2006. Since the new random number generator,
+DRBG, is specification-based and much less arbitrary, this isn't an
+apples-to-apples comparison.
+
+Since we can't comment out the same lines, we decided to find an area
+of code that's critical to updating the entropy of the DRBG random
+number generator. The DRBG random number generator, as specified in
+\cite{12}, has a few different sources of potential entropy to be
+mixed in to the `pool'. The secure source of entropy, which must
+remain secret, is only used while seeding the DRBG. The critical
+activity here occurs when that entropy is hashed into the internal
+state of the DRBG. This occurs in \verb|drbg_hash.c| in the
+\verb|hash_df| function, which is an implementation of
+\textbf{Hash\_df} as specified in \cite{12}. After that, users also
+have the option to mix (untrusted) entropy into the random number
+generation process using `additional input' strings, which are
+optional.
+
+In order to see if the debian bug could happen again today with a
+similar error, we commented out all lines of code that updated the
+internal hash state of the hash-based DRBG, and ran unit tests to see
+if this caused them to fail. To run unit tests, complete the basic
+build process as described above and then type:
+
+\begin{verbatim}
+make test
+\end{verbatim}
+
+We determined that this error is caught, see the error message in
+Fig.\ref{testfailure} that was the output of \verb|make test|.
+
+\begin{figure*}[!t]
+
+\centering
+\begin{verbatim}
+30-test_evp.t ...................... 19/? 
+        # INFO:  @ test/testutil/stanza.c:21
+        # Reading ../../test/recipes/30-test_evp_data/evprand.txt
+        # INFO:  @ test/testutil/stanza.c:122
+        # Starting "CAVP Large Seed" tests at line 17
+        # INFO:  @ test/testutil/stanza.c:122
+        # Starting "CTR DRBG No Reseed Tests (from NIST test vectors)" tests at line 34
+        # INFO:  @ test/testutil/stanza.c:122
+        # Starting "Hash DRBG No Reseed Tests (from NIST test vectors)" tests at line 6324
+        # ERROR: (memory) 'got == item->output' failed @ test/evp_test.c:2599
+        # --- got
+        # +++ item->output
+        # 0000:-919f858c8a03c8a6 7eb2a0f54d2a409a 5b4bb94ecaefeefe b1c9b31ac049d127
+        # 0000:+0e28130fa5ca11ed d3293ca26fdb8ae1 810611f78715082e d3841e7486f16677
+        #       ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^
+        # 0020:-7ccfeecc0a2a85df 16d23b14ad21b87a 5ffd238e2ae34a41 59a3fb4f39377975
+        # 0020:+b28e33ffe0b93d98 ba57ba358c1343ab 2a26b4eb7940f5bc 639384641ee80a25
+        #       ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^
+        # 0040:-15f91a5edeca7aa1 7d30428bf31cd0dd
+        # 0040:+140331076268bd1c e702ad534dda0ed8
+\end{verbatim}
+\caption{A test failure}
+\label{testfailure}  
+\end{figure*}
 
 \section{Measuring test coverage}
+
 \end{document}
