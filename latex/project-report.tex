@@ -65,7 +65,7 @@ to acheive this property, this particular random number generator
 allows the user to add 'entropy' by feeding it buffers full of random
 bytes. These bytes could be from \verb|/dev/urandom|, the user, or
 somewhere else. When adding entropy in this way to the message
-digest-based random API, an internal hash state is update each time
+digest-based random API, an internal hash state is updated each time
 with the random bytes given by the user. The hash state then can be
 used to get random bytes back out of the system. 
 
@@ -145,7 +145,7 @@ stand-in for a server on the Internet or other network that had an
 open SSH port that was believed to be secure. The other machine would
 try to access the target server over SSH by repeatedly generating
 trial keys until it was able to successfully get in. Although this is
-not as simple as just writing code to guess the key and compares two
+not as simple as just writing code to guess the key and compare two
 files, it is arguably a more realistic demonstration of how exploits
 really work, and a better way of understanding them, putting the
 `applied' in `applied cryptography'.
@@ -317,7 +317,7 @@ committer status, a commiter must have authored or reviewed at least
 one commit within the previous two calendar quarters\cite{8}.
 
 They expect committers to be experts in some part of low-level crypto
-library as well as generalists who contribute to all areas of
+library as well as generalists who contribute to all areas of the
 codebase\cite{7}. Committers are expected to oversee the health of the
 project: fixing bugs, addressing open issues, reviewing contributions,
 and improving tests and documentation\cite{7}. According to OpenSSL,
@@ -389,8 +389,8 @@ for any vulnerabilities or bugs in the codebase.
         \item OpenSSL pull requests are reviewed and approved by at
           least two committers, one of whom must be an OTC
           member. Neither of the reviewers can be the author of the
-          submission\cite{7}.  Only exception to this policy is during
-          the release process when the author's review does count
+          submission\cite{7}.  The only exception to this policy is during
+          the release process when the author's review does not count
           towards the two needed reviews for the automated release
           process and NEWS and CHANGES file updates\cite{7}.
 
@@ -440,7 +440,7 @@ for any vulnerabilities or bugs in the codebase.
     just shooting in the dark and hoping to find a vulnerability
     before the adversary finds it.  Nonetheless, we have to say their
     process for who gets to commit code to the master is solid;
-    however, there is no assurance that vulnerability will not be
+    however, there is no assurance that a vulnerability will not be
     shipped out.  The best we could do is hope that the code review
     and automation process detects a defect or vulerability and
     prevents it from being shipped out.
