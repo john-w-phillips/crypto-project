@@ -10,6 +10,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\graphicspath{{./images/}}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -585,7 +586,7 @@ Success with PID seed <PID>, file in trial_identity, trial_identity.pub
 You can then SSH to the target machine with the \verb|trial_identity|
 file.
 
-\section{Measuring effects of unit tests}
+\section{Measuring effects of unit and fuzz tests}
 As part of our analysis we wanted to see if the new unit test
 framework (since 2008) would catch the kind of error the debian
 developer introduced in 2006. Since the new random number generator,
@@ -647,6 +648,33 @@ Fig.\ref{testfailure} that was the output of \verb|make test|.
 \caption{A test failure}
 \label{testfailure}  
 \end{figure*}
+  Meanwhile, the for the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
+We tried both following their instructions on the README at \url{https://github.com/openssl/openssl/blob/master/fuzz/README.md}.
+Their fuzzers run infinitely until the tester kills
+the program or fuzzer detects a crash
+according to the instructions; therefore, we only
+timed the fuzzers for 5 minutes until it crashed or caught something. With
+LibFuzzer, we found timeout on \verb|bignum| and \verb|asn1|. We wanted
+to further investigate the cause of the timeout, and LibFuzzer was not
+being helpful with the warnings. Therefore, we decided to try out
+AFL fuzzer as well. Likewise, AFL fuzzer also timed out on
+both those fuzzers. However, when we increased the timeout to 5 seconds,
+it was successfully able to execute those tests. In conclusion,
+we would have to say the fuzz testing were not able to detect any
+vulnerabilities. The results are show in Figure 3 for
+the timeout failure, and Figure 4 when timeout
+gets updated with \verb|-t 5000| option run with AFL (the test ran for almost half
+an hour before we decided to conclude nothing was found).
+\begin{figure}[h]
+  \caption{AFL test timeout for asn1 fuzzer}
+  \centering
+  \includegraphics[scale=0.4]{asn1-fuzz-failure}
+\end{figure}
+\begin{figure}[h]
+  \caption{AFL test with timeout increased}
+  \centering
+  \includegraphics[scale=0.5]{asn1-fuzz-timeout}
+\end{figure}
 
 \section{Measuring test coverage}
 
