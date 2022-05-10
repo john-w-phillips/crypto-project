@@ -95,7 +95,7 @@ and cause a valgrind error to be emitted. This code was
 \emph{critical} to the random number generator, and the line of code
 generating the error in particular was essential to generating
 entropy. To help understand this, we include a code excerpt that could
-cause such an error:
+cause such an error (from \verb|crypto/rand/randfile.c|):
 
 \begin{verbatim}
 i = fread(buf, 1, n, in);
@@ -108,7 +108,9 @@ Note the comment -- \verb|buf| is \verb|n| long, but \verb|i| may be
 less than \verb|n|. The end result is that the code called by
 \verb|RAND_add| that actually reads and extracts entropy from
 \verb|buf| will cause valgrind to emit a warning about reading from
-uninitialized memory.
+uninitialized memory. However, if you commented out this code, you'd
+also comment out the code that was actually extracting the entropy,
+which is what happened.
 
 The next cause of valgrind errors was also in
 \verb|md_rand.c| -- there, the function \verb|ssleay_rand_bytes| would
