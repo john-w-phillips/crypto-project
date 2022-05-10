@@ -6,7 +6,7 @@
 \usepackage{csquotes}
 \usepackage{hyperref}
 \usepackage{algorithm}
-\usepackage[noend]{algpseudocode}
+\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -627,8 +627,8 @@ works.
   \begin{algorithmic}[1]
     \Procedure{exploit}{$IP,PID$}
     \State Set the PID in the OpenSSL modified library from $PID$
-    \State $rsa_{pub}, rsa_{priv} \gets$ Modified OpenSSL generated key with $PID$ as only source of variability.
-    \State $success \gets$ Try to SSH into host given by $IP$ with $rsa_{priv}$.
+    \State $\mathrm{RSA}_{\mathrm{PU}}, \mathrm{RSA}_{\mathrm{PR}} \gets$ Modified OpenSSL generated key with $PID$ as only source of variability.
+    \State $success \gets$ Try to SSH into host given by $IP$ with $\mathrm{RSA}_{\mathrm{PR}}$.
     \If{$success$}
     \State Report success
     \Else
@@ -645,11 +645,15 @@ target machine. With the provided virtual machines, this would look like this:
 $ ./ssh-exploit-driver.bash 10.10.1.5
 \end{verbatim}
 
-Eventually on the attacker machine you will get the output:
+Eventually on the attacker machine you will get the output seen in
+Fig.\ref{successfulexploit}.
 
-\begin{verbatim}
-Success with PID seed <PID>, file in trial_identity, trial_identity.pub
-\end{verbatim}
+\begin{figure*}
+  \centering
+  \includegraphics[width=4in]{images/SuccessfulExploit}
+  \caption{Console output of successful exploit}
+\label{successfulexploit}
+\end{figure*}
 
 You can then SSH to the target machine with the \verb|trial_identity|
 file.
@@ -735,7 +739,7 @@ percentage of functions can leave out edge cases.
 To measure code coverage, we used the \verb|--coverage| flag with GCC,
 and the \verb|view-test-coverage.sh| script which generates a
 graphical report of test coverage viewable in a web browser. See
-Fig.\ref{coverage-demo} for an example of what the coverage looks
+Fig.\ref{coveragedemo} for an example of what the coverage looks
 like. The details of compiling for coverage testing varied. For the
 \verb|master| branch, the following commands worked:
 
@@ -762,7 +766,7 @@ See Table \ref{branches-coverage} for our results.
 
 \begin{figure*}[!t]
   \noindent\makebox[\textwidth]{\includegraphics[width=\paperwidth]{images/TestCoverageDebianModPoint}}
-  \label{coverage-demo}
+  \label{coveragedemo}
   \caption{Example test coverage output using the lcov tool}
 \end{figure*}
 

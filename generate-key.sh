@@ -2,6 +2,6 @@
 
 export LD_LIBRARY_PATH=/usr/local/ssl/lib:/usr/local/lib:/usr/lib:/lib
 
-yes | ssh-keygen -t rsa -q -f id_rsa_exploit -P ""
+yes | ssh-keygen -t rsa -q -f id_rsa_exploit -P "" >/dev/null 2>&1
 cat id_rsa_exploit.pub > ~/.ssh/authorized_keys
 t
