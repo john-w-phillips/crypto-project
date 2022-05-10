@@ -41,11 +41,12 @@
 There have been small but catastrophic modifications to openssl in the
 past\cite{1}\cite{2}\cite{5} that cause massive security problems and
 in some cases exploits that can disclose private keys, or limit the
-number possible. We explore in depth one such instance, a modification
-made to the OpenSSL package distributed in debian that resulted in
-only 32,768 possible keys that could be generated. We also explore
-similarities to heartbleed. Finally, we investigate methods that have
-been put in place to prevent such bugs from happening in the future.
+number of possible keys. We explore in depth one such instance, a
+modification made to the OpenSSL package distributed in debian that
+resulted in only 32,768 possible keys that could be generated. We also
+explore similarities to heartbleed. Finally, we investigate methods
+that have been put in place to prevent such bugs from happening in the
+future.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -60,7 +61,7 @@ random numbers that uses an interface-like approach with functions
 prefixed with \verb|RAND_*| delegating to a particular
 implementation. Since this API was designed for cryptographic
 applications, the random bytes generated need to not just satisfy
-particular statistical properties but be truly unpredictable. In order
+particular statistical properties, but be truly unpredictable. In order
 to acheive this property, this particular random number generator
 allows the user to add 'entropy' by feeding it buffers full of random
 bytes. These bytes could be from \verb|/dev/urandom|, the user, or
@@ -69,18 +70,62 @@ digest-based random API, an internal hash state is updated each time
 with the random bytes given by the user. The hash state then can be
 used to get random bytes back out of the system. 
 
-Now this particular implementation in \verb|md_rand.c|,
-\emph{deliberately} would `over-read' the user-provided buffer. The
-apparent thinking behind this was that if the code read uninitialized
-memory, this couldn't hurt things, and could only possibly help by
-potentially adding randomness.
+In the OpenSSL code in 2006, there were several places where
+uninitialized memory was deliberately read, in a couple ways. In order
+to understand this, we mention two \verb|RAND_| functions:
+\verb|RAND_add(const void *buf, int num, double entropy)| and
+\verb|RAND_bytes(unsigned char *, int num)|. The first function,
+\verb|RAND_add|, inputs the buffer \verb|buf| into the `pool' of
+entropy, adding \verb|entropy| to the total entropy count. The buffer
+is \verb|num| long.
 
-This behavior occurred in two places in \verb|md_rand.c|. Both of
-those places were actually critical to the entire random number
-generator. Because of the reading of uninitialized memory, any time a
-user of the ssl library did almost anything -- like generate a key,
-for example -- they would get disturbing warnings if they ran their
-program in the popular \verb|valgrind| tool.
+With that understood, the first thing that the OpenSSL code would do
+was call \verb|RAND_add| with a buffer that wasn't completely
+initialized\cite{3}. For example, a function to initialize the random
+library would read some bytes from a file into a buffer without
+filling the buffer, and then call \verb|RAND_add| with that buffer and
+it's full size as a parameter -- \emph{not} the number of bytes read
+into the buffer. This ended up with uninitialized memory being used to
+add to the entropy pool. One result of this deliberate over-reading of
+buffers was that valgrind emitted errors coming from the default
+implementation of the \verb|RAND_add| function, in \verb|md_rand.c|,
+\verb|ssleay_rand_add|. Although that code itself was correct, it
+would read uninitialized memory (which it was told to do by callers),
+and cause a valgrind error to be emitted. This code was
+\emph{critical} to the random number generator, and the line of code
+generating the error in particular was essential to generating
+entropy. To help understand this, we include a code excerpt that could
+cause such an error:
+
+\begin{verbatim}
+i = fread(buf, 1, n, in);
+if (i <= 0) break;
+/* even if n != i, use the full array */
+RAND_add(buf, n, i);
+\end{verbatim}
+
+Note the comment -- \verb|buf| is \verb|n| long, but \verb|i| may be
+less than \verb|n|. The end result is that the code called by
+\verb|RAND_add| that actually reads and extracts entropy from
+\verb|buf| will cause valgrind to emit a warning about reading from
+uninitialized memory.
+
+The next cause of valgrind errors was also in
+\verb|md_rand.c| -- there, the function \verb|ssleay_rand_bytes| would
+update an internal hash with uninitialized memory -- the buffer that
+was supposed to be a region to \emph{output} random bytes to was being
+read from as a potential source of entropy. This code could be
+commented out harmlessly, and probably shouldn't have been there in
+the first place.
+
+These two lines of code were the source of a complaint that first came
+to the debian bug tracker\cite{2}. The debian developer quickly
+spotted the `culprit' code -- that is, the lines of code that valgrind
+identified as reading uninitialized memory -- but didn't know what it
+did. Observing that commenting it out didn't cause anything to crash
+or obviously function incorrectly, he asked on the openssl development
+mailing list if it was okay to remove the two lines of code -- and got
+the go-ahead (See Fig.\ref{email}).
 
 Most linux distributions maintain small set of `patches' for each
 package they distribute. These patches normally are designed to fix
@@ -89,13 +134,6 @@ of being fixed. So although the debian project doesn't maintain
 OpenSSL, they could patch the particular version of OpenSSL
 distributed by debian. And that was the solution arrived at in the bug
 ticket and over email \cite{2}\cite{4}.
-
-This was the source of a complaint that first came to the debian bug
-tracker\cite{2}. The debian developer quickly spotted the culprit code
-but didn't know what it did. Observing that commenting it out didn't
-cause anything to crash or obviously function incorrectly, he asked on
-the openssl development mailing list if it was okay to remove the two
-lines of code -- and got the go-ahead (See Fig.\ref{email}).
 
 \begin{figure*}[!t]
 \centering
@@ -127,13 +165,16 @@ error messages. Has that situation gotten better?)
 
 
 The debian developer then applied the patch and distributed the debian
-version of OpenSSL with this critical vulnerability built in. This
-vulnerability was distributed to all users of debian from 2006 to
-2008\cite{1}. During that entire time, any code using the random
-number generator could only really have 32,768 possible outputs from
-the random number generator. Examples of affected functions included
-TLS modules and SSH key generation -- actually, anything that
-generated RSA keys was vulnerable.
+version of OpenSSL with this critical vulnerability built in. One of
+the two lines commented out was in fact essential to adding entropy to
+the system, and with it commented out, none of the calls to
+\verb|RAND_add| actually did anything. This vulnerability was
+distributed to all users of debian from 2006 to 2008\cite{1}. During
+that entire time, any code using the random number generator could
+only really have 32,768 possible outputs from the random number
+generator. Examples of affected functions included TLS modules and SSH
+key generation -- actually, anything that generated RSA keys was
+vulnerable.
 
 \section{Recreating the 2008 bug}
 
@@ -190,7 +231,7 @@ fifteen to twenty minutes. On a fresh boot, because there haven't been
 as many processes run, it takes only about five minutes.
 
 \subsection{Running the exploit}
-Since the virtual machines are connected over a virtual, network, to
+Since the virtual machines are connected over a virtual network, to
 run the exploit, we simply boot them and run a script on the attacker
 machine that will eventually break the key of the target machine. The
 attacker script will then write the public/private key pair to a
