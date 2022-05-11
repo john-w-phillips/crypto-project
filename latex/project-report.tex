@@ -10,6 +10,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\graphicspath{{./images/}}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -52,8 +53,8 @@ place to prevent such bugs from happening in the future.
 OpenSSL, security vulnerability, debian
 \end{IEEEkeywords}
 
-\section{Introduction}
-\section{Background}
+\section{Introductionn}
+\subsection{Background}
 In 2008 a debian developer made a patch to openssl to fix valgrind
 warnings\cite{2}\cite{3}. OpenSSL has a flexible system for generating
 random numbers that uses an interface-like approach with functions
@@ -133,6 +134,16 @@ number generator could only really have 32,767 possible outputs from
 the random number generator. Examples of affected functions included
 TLS modules and SSH key generation -- actually, anything that
 generated RSA keys was vulnerable.
+
+\subsection{Motivation and Goal}
+
+Because of the infamous vulerability that OpenSSL had in the past,
+we aim to understand one of the vulnerabilities
+of the past (2008 OpenSSL vulnerability), research OpenSSL
+methods in place to prevent vulnerable code from being
+shipped, and experiment on the library by seeing if
+the vulnerability of the past could be detected with methods
+they have set up in the present (particularly functional, and fuzz testing).
 
 \section{Recreating the 2008 bug}
 
@@ -287,6 +298,18 @@ changes like the one made by the debian developer in 2006.
 We did confirm that similar alternations to the DRBG code to the ones
 made in 2006 by the debian developer \emph{did} cause unit tests to
 fail in the newer test suite (version 3.0.0).
+
+  Next, we ran fuzz testing with their specified directions to see if
+it would detect any of those changes. Particularly, we ran AFL 
+library. The library timed out on two
+of the fuzzers (\verb|bignum| and \verb|asn1|) and failed. When
+we extend the timeout of afl fuzzer with \verb|-t 5000| flag for
+those two fuzzers and it did
+not timeout anymore. All of the other
+fuzzers did not timeout and fail. These two fuzzers only failed due to timeout and not because they
+detected a vulnerability. Therefore, we conclude that fuzz testing were unable to detect
+the alterations made to DRBG code. For more details, we further explain
+our process on Appendix B.
 
 \section{Processes in the OpenSSL project in place to prevent further exploits}
 
@@ -475,12 +498,19 @@ heartbleed vulnerability notwithstanding.
 \bibitem{3} \url{https://research.swtch.com/openssl}
 \bibitem{4} \url{https://marc.info/?l=openssl-dev&m=114652287210110&w=2}
 \bibitem{5} \url{https://heartbleed.com/}
-\bibitem{6} \url{https://www.openssl.org/policies/glossary.html}
-\bibitem{7} \url{https://www.openssl.org/policies/general/committer-policy.html}
-\bibitem{8} \url{https://www.openssl.org/policies/omc-bylaws.html}
-\bibitem{9} \url{https://www.openssl.org/policies/technical/}
-\bibitem{10} \url{https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN}
-\bibitem{11} \url{https://github.com/openssl/openssl/tree/master/fuzz}
+\bibitem{6} OpenSSL, ``Glossary of OpenSSL terms'', openssl.org,
+  \url{https://www.openssl.org/policies/glossary.html}(accessed Apr. 20, 2022).
+\bibitem{7} OpenSSL, ``Policy for OpenSSL Committers'', openssl.org,
+  \url{https://www.openssl.org/policies/general/committer-policy.html}(accessed Apr. 20, 2022).
+\bibitem{8} OpenSSL, ``OpenSSL Bylaws'', opessl.org, 
+  \url{https://www.openssl.org/policies/omc-bylaws.html}(accessed Apr. 20, 2022).
+\bibitem{9} OpenSSL, ``OpenSSL Technical Policies'', openssl.org,
+  \url{https://www.openssl.org/policies/technical/}(accessed Apr. 20, 2022).
+\bibitem{10} John Neystadt, ``Automated Penetration Testing with White-Box Fuzzing'', docs.microsoft.com,
+  \url{https://docs.microsoft.com/en-us/previous-versions/software-testing/cc162782(v=msdn.10)?redirectedfrom=MSDN}
+  (accessed Apr. 20, 2022).
+\bibitem{11} OpenSSL, ``Fuzzing OpenSSL'', github.com,
+  \url{https://github.com/openssl/openssl/tree/master/fuzz}(accessed Apr. 20, 2022).
 \bibitem{12} ``Recommendation for Random Number Generation Using
   Deterministic Random Bit Generators'', revision 1,
   \url{https://doi.org/10.6028/NIST.SP.800-90Ar1}, June 2015.
@@ -585,7 +615,7 @@ Success with PID seed <PID>, file in trial_identity, trial_identity.pub
 You can then SSH to the target machine with the \verb|trial_identity|
 file.
 
-\section{Measuring effects of unit tests}
+\section{Measuring effects of unit and fuzz tests}
 As part of our analysis we wanted to see if the new unit test
 framework (since 2008) would catch the kind of error the debian
 developer introduced in 2006. Since the new random number generator,
@@ -647,6 +677,39 @@ Fig.\ref{testfailure} that was the output of \verb|make test|.
 \caption{A test failure}
 \label{testfailure}  
 \end{figure*}
+  For the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
+We tried AFL following their instructions on the README at \url{https://github.com/openssl/openssl/blob/master/fuzz/README.md}.
+Their fuzzers run infinitely until the tester kills
+the program or fuzzer detects a crash
+according to the instructions; therefore, we only
+timed the fuzzers for 3 minutes until it crashed or caught something. With
+AFL, we were able to successfully run all
+fuzzers without any problems, but 
+found timeout on \verb|bignum| and \verb|asn1|. We wanted
+to further investigate the cause of the timeout. Therefore, we increased 
+the timeout to 5 seconds with the command 
+
+\verb|afl-fuzz -t 5000 -i fuzz/corpora/$FUZZER|
+\verb|  -o fuzz/corpora/$FUZZER/out fuzz/$FUZZER|
+where \verb|$FUZZER| is \verb|bignum| or \verb|asn1|, it was successfully able to execute those tests
+as we saw the statistics screen on Figure 4 (asn1 example, but same screen was shown
+when using bignum). 
+  
+  In conclusion, we would have to say the fuzz testing were not able to detect any
+vulnerabilities. The results are show in Figure 3 for
+the timeout failure, and Figure 4 when timeout
+gets updated with \verb|-t 5000| option run with AFL (this test in particular ran for almost two
+hours before we decided to conclude nothing was found).
+\begin{figure}[h]
+  \caption{AFL test timeout for asn1 fuzzer}
+  \centering
+  \includegraphics[scale=0.4]{asn1-fuzz-failure}
+\end{figure}
+\begin{figure}[h]
+  \caption{AFL test with timeout increased}
+  \centering
+  \includegraphics[scale=0.5]{asn1-fuzz-timeout}
+\end{figure}
 
 \section{Measuring test coverage}
 
