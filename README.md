@@ -77,6 +77,9 @@ in the directory `~johphill/cryptography-project`. *This script
 requires root/sudo priviledges.* This is required to set up networking
 so that the machines can share an isolated network.
 
+The virtual machines both have users called `ssluser`, with password
+`P@$$` (note P is capitalized).
+
  On the exploited machine, there is a modified version of the
 `openssh-portable` code (OpenSSH) that generates candidate keys based
 on different PID seeds and tries to SSH into the exploited machine.

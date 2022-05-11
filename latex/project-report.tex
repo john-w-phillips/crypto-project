@@ -6,7 +6,7 @@
 \usepackage{csquotes}
 \usepackage{hyperref}
 \usepackage{algorithm}
-\usepackage[noend]{algpseudocode}
+\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -41,12 +41,13 @@
 \begin{abstract}
 There have been small but catastrophic modifications to openssl in the
 past\cite{1}\cite{2}\cite{5} that cause massive security problems and
-in some cases exploits that can disclose private keys. We explore in
-depth one such instance, a modification made to the OpenSSL package
-distributed in debian that resulted in only 32,768 possible keys that
-could be generated. We also explore similarities to
-heartbleed. Finally, we investigate methods that have been put in
-place to prevent such bugs from happening in the future.
+in some cases exploits that can disclose private keys, or limit the
+number of possible keys. We explore in depth one such instance, a
+modification made to the OpenSSL package distributed in debian that
+resulted in only 32,768 possible keys that could be generated. We also
+explore similarities to heartbleed. Finally, we investigate methods
+that have been put in place to prevent such bugs from happening in the
+future.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -61,7 +62,7 @@ random numbers that uses an interface-like approach with functions
 prefixed with \verb|RAND_*| delegating to a particular
 implementation. Since this API was designed for cryptographic
 applications, the random bytes generated need to not just satisfy
-particular statistical properties but be truly unpredictable. In order
+particular statistical properties, but be truly unpredictable. In order
 to acheive this property, this particular random number generator
 allows the user to add 'entropy' by feeding it buffers full of random
 bytes. These bytes could be from \verb|/dev/urandom|, the user, or
@@ -70,18 +71,64 @@ digest-based random API, an internal hash state is updated each time
 with the random bytes given by the user. The hash state then can be
 used to get random bytes back out of the system. 
 
-Now this particular implementation in \verb|md_rand.c|,
-\emph{deliberately} would `over-read' the user-provided buffer. The
-apparent thinking behind this was that if the code read uninitialized
-memory, this couldn't hurt things, and could only possibly help by
-potentially adding randomness.
+In the OpenSSL code in 2006, there were several places where
+uninitialized memory was deliberately read, in a couple ways. In order
+to understand this, we mention two \verb|RAND_| functions:
+\verb|RAND_add(const void *buf, int num, double entropy)| and
+\verb|RAND_bytes(unsigned char *, int num)|. The first function,
+\verb|RAND_add|, inputs the buffer \verb|buf| into the `pool' of
+entropy, adding \verb|entropy| to the total entropy count. The buffer
+is \verb|num| long.
 
-This behavior occurred in two places in \verb|md_rand.c|. Both of
-those places were actually critical to the entire random number
-generator. Because of the reading of uninitialized memory, any time a
-user of the ssl library did almost anything -- like generate a key,
-for example -- they would get disturbing warnings if they ran their
-program in the popular \verb|valgrind| tool.
+With that understood, the first thing that the OpenSSL code would do
+was call \verb|RAND_add| with a buffer that wasn't completely
+initialized\cite{3}. For example, a function to initialize the random
+library would read some bytes from a file into a buffer without
+filling the buffer, and then call \verb|RAND_add| with that buffer and
+it's full size as a parameter -- \emph{not} the number of bytes read
+into the buffer. This ended up with uninitialized memory being used to
+add to the entropy pool. One result of this deliberate over-reading of
+buffers was that valgrind emitted errors coming from the default
+implementation of the \verb|RAND_add| function, in \verb|md_rand.c|,
+\verb|ssleay_rand_add|. Although that code itself was correct, it
+would read uninitialized memory (which it was told to do by callers),
+and cause a valgrind error to be emitted. This code was
+\emph{critical} to the random number generator, and the line of code
+generating the error in particular was essential to generating
+entropy. To help understand this, we include a code excerpt that could
+cause such an error (from \verb|crypto/rand/randfile.c|):
+
+\begin{verbatim}
+i = fread(buf, 1, n, in);
+if (i <= 0) break;
+/* even if n != i, use the full array */
+RAND_add(buf, n, i);
+\end{verbatim}
+
+Note the comment -- \verb|buf| is \verb|n| long, but \verb|i| may be
+less than \verb|n|. The end result is that the code called by
+\verb|RAND_add| that actually reads and extracts entropy from
+\verb|buf| will cause valgrind to emit a warning about reading from
+uninitialized memory. However, if you commented out this code, you'd
+also comment out the code that was actually extracting the entropy,
+which is what happened.
+
+The next cause of valgrind errors was also in
+\verb|md_rand.c| -- there, the function \verb|ssleay_rand_bytes| would
+update an internal hash with uninitialized memory -- the buffer that
+was supposed to be a region to \emph{output} random bytes to was being
+read from as a potential source of entropy. This code could be
+commented out harmlessly, and probably shouldn't have been there in
+the first place.
+
+These two lines of code were the source of a complaint that first came
+to the debian bug tracker\cite{2}. The debian developer quickly
+spotted the `culprit' code -- that is, the lines of code that valgrind
+identified as reading uninitialized memory -- but didn't know what it
+did. Observing that commenting it out didn't cause anything to crash
+or obviously function incorrectly, he asked on the openssl development
+mailing list if it was okay to remove the two lines of code -- and got
+the go-ahead (See Fig.\ref{email}).
 
 Most linux distributions maintain small set of `patches' for each
 package they distribute. These patches normally are designed to fix
@@ -90,13 +137,6 @@ of being fixed. So although the debian project doesn't maintain
 OpenSSL, they could patch the particular version of OpenSSL
 distributed by debian. And that was the solution arrived at in the bug
 ticket and over email \cite{2}\cite{4}.
-
-This was the source of a complaint that first came to the debian bug
-tracker\cite{2}. The debian developer quickly spotted the culprit code
-but didn't know what it did. Observing that commenting it out didn't
-cause anything to crash or obviously function incorrectly, he asked on
-the openssl development mailing list if it was okay to remove the two
-lines of code -- and got the go-ahead.
 
 \begin{figure*}[!t]
 \centering
@@ -122,18 +162,22 @@ Not much. If it helps with debugging, I'm in favor of removing them.
 error messages. Has that situation gotten better?)
 \end{verbatim}
 \end{displayquote}
+\label{email}
 \caption{A reply to the email from the Debian Developer telling him to go ahead and modify the OpenSSL code.\cite{4}}
 \end{figure*}
 
 
 The debian developer then applied the patch and distributed the debian
-version of OpenSSL with this critical vulnerability built in. This
-vulnerability was distributed to all users of debian from 2006 to
-2008\cite{1}. During that entire time, any code using the random
-number generator could only really have 32,767 possible outputs from
-the random number generator. Examples of affected functions included
-TLS modules and SSH key generation -- actually, anything that
-generated RSA keys was vulnerable.
+version of OpenSSL with this critical vulnerability built in. One of
+the two lines commented out was in fact essential to adding entropy to
+the system, and with it commented out, none of the calls to
+\verb|RAND_add| actually did anything. This vulnerability was
+distributed to all users of debian from 2006 to 2008\cite{1}. During
+that entire time, any code using the random number generator could
+only really have 32,768 possible outputs from the random number
+generator. Examples of affected functions included TLS modules and SSH
+key generation -- actually, anything that generated RSA keys was
+vulnerable.
 
 \subsection{Motivation and Goal}
 
@@ -200,11 +244,11 @@ fifteen to twenty minutes. On a fresh boot, because there haven't been
 as many processes run, it takes only about five minutes.
 
 \subsection{Running the exploit}
-Since the virtual machines are connected over a virtual, network, to run the
-exploit, we simply boot them and run a script on the attacker machine
-that will eventually break the key of the target machine. The attacker
-script will then write the public/private key pair to a file. See the
-appendix for details.
+Since the virtual machines are connected over a virtual network, to
+run the exploit, we simply boot them and run a script on the attacker
+machine that will eventually break the key of the target machine. The
+attacker script will then write the public/private key pair to a
+file. See Appendix A for details.
 
 \subsection{Alternative approaches}
 
@@ -219,18 +263,17 @@ obvious bugs made their way into OpenSSL packages that were
 distributed to an untold number of machines.
 
 With heartbleed, the issue was simply a missing boundary
-check<CITE>. First, code was added to allow for an extension to the
+check\cite{16}. First, code was added to allow for an extension to the
 SSL/TLS protocol that sent `heartbeats'. This allows for the SSL
-connection to be kept alive <CITE>. The fix was only a few lines of
-code<CITE>.
+connection to be kept alive \cite{16}. The fix was only a few lines of
+code\cite{17}.
 
 Although one bug was an alteration of working code and the other was
 adding a buggy feature, the critical piece of both involved reading
 past array bounds. In the debian bug, a call to \verb|MD_Update()| was
-reading past initialized memory into unused memory and caused a
-valgrind error, which triggered the faulty fix. In Heartbleed, a
-boundary check was not made that allowed attackers to read
-uninitialized memory.
+uninitialized memory and caused a valgrind error, which triggered the
+faulty fix. In Heartbleed, a boundary check was not made that allowed
+attackers to read uninitialized memory.
 
 This raises the question of how, if possible, to catch such simple
 implementation errors? Possible solutions are using CI/CD and a good
@@ -277,18 +320,18 @@ in the \verb|test| directory (see Appendix A for details). Not only
 that but the OpenSSL code in general from that era was littered with
 valgrind errors, with valgrind not counting more errors on some tests
 because there were so many. Using the \verb|lcov| tool, code coverage
-was measured at around 42\%, covered in Appendix A. This left lots of
-room for bugs to slip through, and none of the tests failed on the
-branch that contained the debian modifications -- so the debian
-developer had no way to test his work other than trust in the mailing
-list.
+was measured at around 41.7\%, covered in Appendix C (see Table
+\ref{branches-coverage} also). This left lots of room for bugs to slip
+through, and none of the tests failed on the branch that contained the
+debian modifications -- so the debian developer had no way to test his
+work other than trust in the mailing list.
 
 The current state of the code (the \verb|master| branch as of March
 25, 2022) is certainly better, although perhaps by not as much as
 would be ideal. We ran the functional test suite in the \verb|test/|
 directory to see code coverage, using the same method for
-\verb|0.9.7e|. Code coverage improved to a total of 66\% of lines (see
-Appendix A for how to get this information for yourself). We noticed
+\verb|0.9.7e|. Code coverage improved to a total of 65.1\% of lines (see
+Appendix C for how to get this information for yourself). We noticed
 that some of the implementation files for the DRBG, in
 \verb|providers/implementations/rands/drbg.c| had many uncovered
 edge-cases. Although the code may work now, uncovered edge cases in
@@ -297,7 +340,13 @@ changes like the one made by the debian developer in 2006.
 
 We did confirm that similar alternations to the DRBG code to the ones
 made in 2006 by the debian developer \emph{did} cause unit tests to
-fail in the newer test suite (version 3.0.0).
+fail in the newer test suite (version 3.0.0), see Appendix B for more.
+
+Although code coverage and the state of the unit tests has improved,
+65.1\% unit test coverage leaves a lot to be desired. In a
+security-critical library, the 35\% of untested code could easily have
+devastating un-tested flaws, that could wait for years before being
+found.
 
   Next, we ran fuzz testing with their specified directions to see if
 it would detect any of those changes. Particularly, we ran AFL 
@@ -494,10 +543,15 @@ heartbleed vulnerability notwithstanding.
     
 \begin{thebibliography}{00}
 \bibitem{1} \url{https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/}
+
 \bibitem{2} \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516}
+
 \bibitem{3} \url{https://research.swtch.com/openssl}
+
 \bibitem{4} \url{https://marc.info/?l=openssl-dev&m=114652287210110&w=2}
+
 \bibitem{5} \url{https://heartbleed.com/}
+
 \bibitem{6} OpenSSL, ``Glossary of OpenSSL terms'', openssl.org,
   \url{https://www.openssl.org/policies/glossary.html}(accessed Apr. 20, 2022).
 \bibitem{7} OpenSSL, ``Policy for OpenSSL Committers'', openssl.org,
@@ -514,12 +568,21 @@ heartbleed vulnerability notwithstanding.
 \bibitem{12} ``Recommendation for Random Number Generation Using
   Deterministic Random Bit Generators'', revision 1,
   \url{https://doi.org/10.6028/NIST.SP.800-90Ar1}, June 2015.
+
 \bibitem{13} Salz, Richard, OpenSSL Source code, commit da8fc25a989cf4f4d26d626a85477e8a9282da12, June, 2017.
+
 \bibitem{14} Salz, Richard, OpenSSL Source code, commit 75e2c877650444fb829547bdb58d46eb1297bc1a, August 2017.
+
 \bibitem{15} OpenSSL Project, ``\verb|RAND_DRBG|'', OpenSSL
   Documentation,
   \url{https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html}
+
+\bibitem{16} Rubenking, Neil, ``Heartbleed: How It Works'', \emph{PCMAG}, \url{https://www.pcmag.com/news/heartbleed-how-it-works}, (accessed May 10, 2022).
+
+\bibitem{17} Henson, Stephen, OpenSSL SOurce code, commit 96db9023b881d7cd9f379b0c154650d6c108e9a3, April 2014.
+
 \end{thebibliography}
+
 \appendices{}
 \section{Building and running the exploit}
 For the project we built a git repository found at
@@ -588,8 +651,8 @@ works.
   \begin{algorithmic}[1]
     \Procedure{exploit}{$IP,PID$}
     \State Set the PID in the OpenSSL modified library from $PID$
-    \State $rsa_{pub}, rsa_{priv} \gets$ Modified OpenSSL generated key with $PID$ as only source of variability.
-    \State $success \gets$ Try to SSH into host given by $IP$ with $rsa_{priv}$.
+    \State $\mathrm{RSA}_{\mathrm{PU}}, \mathrm{RSA}_{\mathrm{PR}} \gets$ Modified OpenSSL generated key with $PID$ as only source of variability.
+    \State $success \gets$ Try to SSH into host given by $IP$ with $\mathrm{RSA}_{\mathrm{PR}}$.
     \If{$success$}
     \State Report success
     \Else
@@ -606,31 +669,43 @@ target machine. With the provided virtual machines, this would look like this:
 $ ./ssh-exploit-driver.bash 10.10.1.5
 \end{verbatim}
 
-Eventually you get the output:
+Eventually on the attacker machine you will get the output seen in
+Fig.\ref{successfulexploit}.
 
-\begin{verbatim}
-Success with PID seed <PID>, file in trial_identity, trial_identity.pub
-\end{verbatim}
+\begin{figure*}
+  \centering
+  \includegraphics[width=4in]{images/SuccessfulExploit}
+  \caption{Console output of successful exploit}
+\label{successfulexploit}
+\end{figure*}
 
 You can then SSH to the target machine with the \verb|trial_identity|
 file.
 
+
 \section{Measuring effects of unit and fuzz tests}
+
 As part of our analysis we wanted to see if the new unit test
 framework (since 2008) would catch the kind of error the debian
 developer introduced in 2006. Since the new random number generator,
 DRBG, is specification-based and much less arbitrary, this isn't an
 apples-to-apples comparison.
 
-Since we can't comment out the same lines, we decided to find an area
-of code that's critical to updating the entropy of the DRBG random
-number generator. The DRBG random number generator, as specified in
-\cite{12}, has a few different sources of potential entropy to be
-mixed in to the `pool'. The secure source of entropy, which must
-remain secret, is only used while seeding the DRBG. The critical
-activity here occurs when that entropy is hashed into the internal
-state of the DRBG. This occurs in \verb|drbg_hash.c| in the
-\verb|hash_df| function, which is an implementation of
+First, we tried running the old test suite to see if it would have
+caught the debian-introduced bug, or if the debian developer was
+simply negligent. In that version of OpenSSL, tests are run with the
+comand \verb|make alltests| in the \verb|test| directory.  No tests
+failed -- so the automated test suite didn't catch this modification.
+
+Since we can't comment out the same lines in newer OpenSSL versions,
+we decided to find an area of code that's critical to updating the
+entropy of the DRBG random number generator. The DRBG random number
+generator, as specified in \cite{12}, has a few different sources of
+potential entropy to be mixed in to the `pool'. The secure source of
+entropy, which must remain secret, is only used while seeding the
+DRBG. The critical activity here occurs when that entropy is hashed
+into the internal state of the DRBG. This occurs in \verb|drbg_hash.c|
+in the \verb|hash_df| function, which is an implementation of
 \textbf{Hash\_df} as specified in \cite{12}. After that, users also
 have the option to mix (untrusted) entropy into the random number
 generation process using `additional input' strings, which are
@@ -674,7 +749,7 @@ Fig.\ref{testfailure} that was the output of \verb|make test|.
         # 0040:-15f91a5edeca7aa1 7d30428bf31cd0dd
         # 0040:+140331076268bd1c e702ad534dda0ed8
 \end{verbatim}
-\caption{A test failure}
+\caption{A test failure, catching the modified DRBG. This didn't happen in the earlier OpenSSL.}
 \label{testfailure}  
 \end{figure*}
   For the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
@@ -712,5 +787,55 @@ hours before we decided to conclude nothing was found).
 \end{figure}
 
 \section{Measuring test coverage}
+We also wanted to measure test coverage. Test coverage is a way of
+measuring how much code actually gets executed during a test run. You
+can get two basic kinds of measurements: percentage of lines executed,
+or percentage of functions. We focus on percentage of lines, since
+percentage of functions can leave out edge cases.
 
+To measure code coverage, we used the \verb|--coverage| flag with GCC,
+and the \verb|view-test-coverage.sh| script which generates a
+graphical report of test coverage viewable in a web browser. See
+Fig.\ref{coveragedemo} for an example of what the coverage looks
+like. The details of compiling for coverage testing varied. For the
+\verb|master| branch, the following commands worked:
+
+\begin{verbatim}
+./config CFLAGS="--coverage -fprofile-arcs" \
+         LDFLAGS="-fprofile-arcs -lgcov"
+make -j
+make test
+../view-coverage.sh
+\end{verbatim}
+
+However, for the \verb|debian-mod-point| branch, a slightly different
+set of commands was needed:
+
+\begin{verbatim}
+./config -lgcov -fprofile-arcs \
+         -ftest-coverage shared
+make -j
+make test
+../view-coverage.sh
+\end{verbatim}
+
+See Table \ref{branches-coverage} for our results.
+
+\begin{figure*}[!t]
+  \noindent\makebox[\textwidth]{\includegraphics[width=\paperwidth]{images/TestCoverageDebianModPoint}}
+  \label{coveragedemo}
+  \caption{Example test coverage output using the lcov tool}
+\end{figure*}
+
+\begin{table*}[!t]
+  \centering
+  \begin{tabular}{|l|l|}
+    \hline
+    Branch name & Coverage \%  (by line)\\ \hline
+    \verb|debian-mod-point| & 41.7\% \\ \hline
+    \verb|master (version 3) | & 65.1\% \\ \hline
+  \end{tabular}
+  \caption{Branches in the openssl subrepository and test coverage.}
+  \label{branches-coverage}
+\end{table*}
 \end{document}
