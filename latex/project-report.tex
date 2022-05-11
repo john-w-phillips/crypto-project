@@ -517,6 +517,14 @@ for any vulnerabilities or bugs in the codebase.
     and automation process detects a defect or vulerability and
     prevents it from being shipped out.
 
+
+\section{Limitations and Future Work}
+When fuzz testing the intentional vulerability with the current codebase, 
+we definitely could have waited longer. However, due to the lack of time, we limited
+it to 3 minutes until the tests found anything. If the experiment were to be
+conducted again, we could try and increase the wait time to 15, or 30 mintues
+per fuzzer.
+
 \section{Conclusion}
 To understand how a vulnerability like the 2008 debian OpenSSL bug
 happens and can be exploited, we read the code from that period and
@@ -783,7 +791,7 @@ hours before we decided to conclude nothing was found).
 \begin{figure}[h]
   \caption{AFL test with timeout increased}
   \centering
-  \includegraphics[scale=0.5]{asn1-fuzz-timeout}
+  \includegraphics[scale=0.4]{asn1-fuzz-timeout}
 \end{figure}
 
 \section{Measuring test coverage}
