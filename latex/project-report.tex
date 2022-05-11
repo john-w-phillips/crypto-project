@@ -139,6 +139,7 @@ distributed by debian. And that was the solution arrived at in the bug
 ticket and over email \cite{2}\cite{4}.
 
 \begin{figure*}[!t]
+
 \centering
 \begin{displayquote}
 \begin{verbatim}
@@ -162,8 +163,9 @@ Not much. If it helps with debugging, I'm in favor of removing them.
 error messages. Has that situation gotten better?)
 \end{verbatim}
 \end{displayquote}
-\label{email}
+
 \caption{A reply to the email from the Debian Developer telling him to go ahead and modify the OpenSSL code.\cite{4}}
+\label{email}
 \end{figure*}
 
 
@@ -544,7 +546,7 @@ heartbleed vulnerability notwithstanding.
 \begin{thebibliography}{00}
 \bibitem{1} D. Winter, ``Debian's openssl disaster: Isotoma: Our blog'', Isotoma, 14-May-2008 (Online), 
   \url{https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/} (Accessed: 11-May-2022). 
-\bibitem{2} R. Kettlewell, ``Debian bug report logs - #363516 valgrind-clean the RNG'', bugs.debian.org, 19-Apr-2006 (Online), 
+\bibitem{2} R. Kettlewell, ``Debian bug report logs - \#363516 valgrind-clean the RNG'', bugs.debian.org, 19-Apr-2006 (Online), 
   \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516} (Accessed: 11-May-2022). 
 \bibitem{3} R. Cox, ``Lessons from the Debian/OpenSSL fiasco'', research!rsc, 21-May-2008 (Online), 
   \url{https://research.swtch.com/openssl} (Accessed: 11-May-2022). 
@@ -676,7 +678,7 @@ Fig.\ref{successfulexploit}.
   \centering
   \includegraphics[width=4in]{images/SuccessfulExploit}
   \caption{Console output of successful exploit}
-\label{successfulexploit}
+  \label{successfulexploit}
 \end{figure*}
 
 You can then SSH to the target machine with the \verb|trial_identity|
@@ -752,6 +754,7 @@ Fig.\ref{testfailure} that was the output of \verb|make test|.
 \caption{A test failure, catching the modified DRBG. This didn't happen in the earlier OpenSSL.}
 \label{testfailure}  
 \end{figure*}
+
   For the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
 We tried AFL following their instructions on the README at \url{https://github.com/openssl/openssl/blob/master/fuzz/README.md}.
 Their fuzzers run infinitely until the tester kills
@@ -823,8 +826,8 @@ See Table \ref{branches-coverage} for our results.
 
 \begin{figure*}[!t]
   \noindent\makebox[\textwidth]{\includegraphics[width=\paperwidth]{images/TestCoverageDebianModPoint}}
-  \label{coveragedemo}
   \caption{Example test coverage output using the lcov tool}
+  \label{coveragedemo}  
 \end{figure*}
 
 \begin{table*}[!t]
