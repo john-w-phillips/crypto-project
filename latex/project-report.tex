@@ -64,7 +64,7 @@ implementation. Since this API was designed for cryptographic
 applications, the random bytes generated need to not just satisfy
 particular statistical properties, but be truly unpredictable. In order
 to acheive this property, this particular random number generator
-allows the user to add 'entropy' by feeding it buffers full of random
+allows the user to add `entropy' by feeding it buffers full of random
 bytes. These bytes could be from \verb|/dev/urandom|, the user, or
 somewhere else. When adding entropy in this way to the message
 digest-based random API, an internal hash state is updated each time
@@ -773,11 +773,12 @@ where \verb|$FUZZER| is \verb|bignum| or \verb|asn1|, it was successfully able t
 as we saw the statistics screen on Figure 4 (asn1 example, but same screen was shown
 when using bignum). 
   
-  In conclusion, we would have to say the fuzz testing were not able to detect any
-vulnerabilities. The results are show in Figure 3 for
-the timeout failure, and Figure 4 when timeout
-gets updated with \verb|-t 5000| option run with AFL (this test in particular ran for almost two
-hours before we decided to conclude nothing was found).
+In conclusion, we would have to say the fuzz testing were not able to
+detect any vulnerabilities. The results are show in Figure 3 for the
+timeout failure, and Figure 4 when timeout gets updated with
+\verb|-t 5000| option run with AFL (this test in particular ran for
+almost two hours before we decided to conclude nothing was found).
+
 \begin{figure}[h]
   \caption{AFL test timeout for asn1 fuzzer}
   \centering
