@@ -137,12 +137,12 @@ generated RSA keys was vulnerable.
 
 \subsection{Motivation and Goal}
 
-Because of infamous vulerability that OpenSSL had in the past,
-in this paper, we aim to understand one of the vulnerabilities
+Because of the infamous vulerability that OpenSSL had in the past,
+we aim to understand one of the vulnerabilities
 of the past (2008 OpenSSL vulnerability), research OpenSSL
 methods in place to prevent vulnerable code from being
 shipped, and experiment on the library by seeing if
-vulnerability of the past could be detected with methods
+the vulnerability of the past could be detected with methods
 they have set up in the present (particularly functional, and fuzz testing).
 
 \section{Recreating the 2008 bug}
@@ -677,7 +677,7 @@ Fig.\ref{testfailure} that was the output of \verb|make test|.
 \caption{A test failure}
 \label{testfailure}  
 \end{figure*}
-  Meanwhile, the for the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
+  For the fuzz tests, OpenSSL recommended using LibFuzzer or AFL.
 We tried AFL following their instructions on the README at \url{https://github.com/openssl/openssl/blob/master/fuzz/README.md}.
 Their fuzzers run infinitely until the tester kills
 the program or fuzzer detects a crash
