@@ -517,14 +517,6 @@ for any vulnerabilities or bugs in the codebase.
     and automation process detects a defect or vulerability and
     prevents it from being shipped out.
 
-
-\section{Limitations and Future Work}
-When fuzz testing the intentional vulerability with the current codebase, 
-we definitely could have waited longer. However, due to the lack of time, we limited
-it to 3 minutes until the tests found anything. If the experiment were to be
-conducted again, we could try and increase the wait time to 15, or 30 mintues
-per fuzzer.
-
 \section{Conclusion}
 To understand how a vulnerability like the 2008 debian OpenSSL bug
 happens and can be exploited, we read the code from that period and
@@ -550,16 +542,16 @@ substantially since the 2008 debian OpenSSL bug was caught, the
 heartbleed vulnerability notwithstanding.
     
 \begin{thebibliography}{00}
-\bibitem{1} \url{https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/}
-
-\bibitem{2} \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516}
-
-\bibitem{3} \url{https://research.swtch.com/openssl}
-
-\bibitem{4} \url{https://marc.info/?l=openssl-dev&m=114652287210110&w=2}
-
-\bibitem{5} \url{https://heartbleed.com/}
-
+\bibitem{1} D. Winter, ``Debian's openssl disaster: Isotoma: Our blog'', Isotoma, 14-May-2008 (Online), 
+  \url{https://isotoma.com/blog/2008/05/14/debians-openssl-disaster/} (Accessed: 11-May-2022). 
+\bibitem{2} R. Kettlewell, ``Debian bug report logs - #363516 valgrind-clean the RNG'', bugs.debian.org, 19-Apr-2006 (Online), 
+  \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=363516} (Accessed: 11-May-2022). 
+\bibitem{3} R. Cox, ``Lessons from the Debian/OpenSSL fiasco'', research!rsc, 21-May-2008 (Online), 
+  \url{https://research.swtch.com/openssl} (Accessed: 11-May-2022). 
+\bibitem{4} U. Möller, ``re: Random number generator, uninitialised data and valgrind.'', marc.info, 
+  \url{https://marc.info/?l=openssl-dev&amp;m=114652287210110&amp;w=2} (Accessed: 11-May-2022). 
+\bibitem{5} I. Synopsys, ``The heartbleed bug'', Heartbleed Bug,
+  \url{https://heartbleed.com/} (Accessed: 11-May-2022). 
 \bibitem{6} OpenSSL, ``Glossary of OpenSSL terms'', openssl.org,
   \url{https://www.openssl.org/policies/glossary.html}(accessed Apr. 20, 2022).
 \bibitem{7} OpenSSL, ``Policy for OpenSSL Committers'', openssl.org,
@@ -791,7 +783,7 @@ hours before we decided to conclude nothing was found).
 \begin{figure}[h]
   \caption{AFL test with timeout increased}
   \centering
-  \includegraphics[scale=0.4]{asn1-fuzz-timeout}
+  \includegraphics[scale=0.5]{asn1-fuzz-timeout}
 \end{figure}
 
 \section{Measuring test coverage}
