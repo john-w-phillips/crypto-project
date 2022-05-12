@@ -77,8 +77,9 @@ used to get random bytes back out of the system.
 In the OpenSSL code in 2006, there were several places where
 uninitialized memory was deliberately read, in a couple ways. In order
 to understand this, we mention two \verb|RAND_| functions:
-\verb|RAND_add(const void *buf, int num, double entropy)| and
-\verb|RAND_bytes(unsigned char *, int num)|. The first function,
+\verb|RAND_add(const void *buf, int num,|
+\verb|double entropy)| and \verb|RAND_bytes(unsigned char|
+\verb|*,int num)|. The first function,
 \verb|RAND_add|, inputs the buffer \verb|buf| into the `pool' of
 entropy, adding \verb|entropy| to the total entropy count. The buffer
 is \verb|num| long.
