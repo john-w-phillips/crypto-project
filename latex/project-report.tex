@@ -67,7 +67,7 @@ implementation. Since this API was designed for cryptographic
 applications, the random bytes generated need to not just satisfy
 particular statistical properties, but be truly unpredictable. In order
 to acheive this property, this particular random number generator
-allows the user to add 'entropy' by feeding it buffers full of random
+allows the user to add `entropy' by feeding it buffers full of random
 bytes. These bytes could be from \verb|/dev/urandom|, the user, or
 somewhere else. When adding entropy in this way to the message
 digest-based random API, an internal hash state is updated each time
@@ -354,17 +354,16 @@ security-critical library, the 35\% of untested code could easily have
 devastating un-tested flaws, that could wait for years before being
 found.
 
-  Next, we ran fuzz testing with their specified directions to see if
-it would detect any of those changes. Particularly, we ran AFL 
-library. The library timed out on two
-of the fuzzers (\verb|bignum| and \verb|asn1|) and failed. When
-we extend the timeout of afl fuzzer with \verb|-t 5000| flag for
-those two fuzzers and it did
-not timeout anymore. All of the other
-fuzzers did not timeout and fail. These two fuzzers only failed due to timeout and not because they
-detected a vulnerability. Therefore, we conclude that fuzz testing were unable to detect
-the alterations made to DRBG code. For more details, we further explain
-our process on Appendix B.
+Next, we ran fuzz testing with their specified directions to see if it
+would detect any of those changes. Particularly, we ran AFL
+library. The library timed out on two of the fuzzers (\verb|bignum|
+and \verb|asn1|) and failed. When we extend the timeout of afl fuzzer
+with \verb|-t 5000| flag for those two fuzzers and it did not timeout
+anymore. All of the other fuzzers did not timeout and fail. These two
+fuzzers only failed due to timeout and not because they detected a
+vulnerability. Therefore, we conclude that fuzz testing were unable to
+detect the alterations made to DRBG code. For more details, we further
+explain our process on Appendix B.
 
 \section{Processes in the OpenSSL project in place to prevent further exploits}
 
@@ -524,9 +523,37 @@ for any vulnerabilities or bugs in the codebase.
     prevents it from being shipped out.
     
 \section{Limitations and Future Work}
-In terms of limitations, we originally intended to use Valgrind testing in order to scan the main branch of OpenSSL, but we didn’t get to doing that. Valgrind is an instrumentation framework that can be used as a tool to make sure the code is working properly and managing memory correctly, for example, it would test for potential memory leak issues and unsafe/ uninitialized memory accesses. Unfortunately however we couldn’t get Valgrind to work on the main branch for OpenSSL (we were only able to get it to work on old versions).
-We also thought that we could have expanded and tightened our error checking in general. For example through making more use of the -Wall flag, cppcheck, and sanitizers. The wall flag would have helped us to see potential warning messages; Cppcheck for instance is a static analysis tool for C/C++ code that could have helped us detect potential bugs or errors, undefined behavior, and dangerous code constructs; and Sanitizers could have helped us detect things like overflows and uninitialized memory reading. By using all of these tools we could have scanned OpenSSL for vulnerabilities from multiple error checking sources, making sure that there weren't any errors in the code.
-For further research opportunities, we thought that exploring some of the other potential vulnerabilities in OpenSSL would be a good place to explore. For example, we mentioned previously that only 65.1% of the code is covered in test cases, and so seeing if a security vulnerability would be possible within the currently untested code would be an area that we can look into. If a security vulnerability would be possible to implement in an untested area of the code that would present a significant security risk, making sure that that is not possible would add to the security of OpenSSL as a whole.
+In terms of limitations, we originally intended to use Valgrind
+testing in order to scan the main branch of OpenSSL, but we didn’t get
+to doing that. Valgrind is an instrumentation framework that can be
+used as a tool to make sure the code is working properly and managing
+memory correctly, for example, it would test for potential memory leak
+issues and unsafe/ uninitialized memory accesses. Unfortunately
+however we couldn’t get Valgrind to work on the main branch for
+OpenSSL (we were only able to get it to work on old versions).
+
+We also thought that we could have expanded and tightened our error
+checking in general. For example through making more use of the
+\verb|-Wall| compiler flag, cppcheck, and compiler sanitizers
+(\verb|-fsanitize=address| for example). The \verb|-Wall| flag would
+have given us more advanced compiler warning messages. Cppcheck is a
+static analysis tool for C/C++ code that could have helped us detect
+potential bugs or errors, undefined behavior, and dangerous code
+constructs; and sanitizers could have helped us detect things like
+overflows and uninitialized memory reading. By using all of these
+tools we could have scanned OpenSSL for vulnerabilities from multiple
+error checking sources, making sure that there weren't any errors in
+the code.
+
+For further research opportunities, we thought that exploring some of
+the other potential vulnerabilities in OpenSSL would be a good place
+to explore. For example, we mentioned previously that only 65.1\% of
+the code is covered in test cases, and so seeing if a security
+vulnerability would be possible within the currently untested code
+would be an area that we can look into. If a security vulnerability
+would be possible to implement in an untested area of the code that
+would present a significant security risk, making sure that that is
+not possible would add to the security of OpenSSL as a whole.
 
 \section{Conclusion}
 To understand how a vulnerability like the 2008 debian OpenSSL bug
@@ -782,11 +809,12 @@ where \verb|$FUZZER| is \verb|bignum| or \verb|asn1|, it was successfully able t
 as we saw the statistics screen on Figure 4 (asn1 example, but same screen was shown
 when using bignum). 
   
-  In conclusion, we would have to say the fuzz testing were not able to detect any
-vulnerabilities. The results are show in Figure 3 for
-the timeout failure, and Figure 4 when timeout
-gets updated with \verb|-t 5000| option run with AFL (this test in particular ran for almost two
-hours before we decided to conclude nothing was found).
+In conclusion, we would have to say the fuzz testing were not able to
+detect any vulnerabilities. The results are show in Figure 3 for the
+timeout failure, and Figure 4 when timeout gets updated with
+\verb|-t 5000| option run with AFL (this test in particular ran for
+almost two hours before we decided to conclude nothing was found).
+
 \begin{figure}[h]
   \caption{AFL test timeout for asn1 fuzzer}
   \centering
