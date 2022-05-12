@@ -532,12 +532,13 @@ however we couldn’t get Valgrind to work on the main branch for
 OpenSSL (we were only able to get it to work on old versions).
 
 We also thought that we could have expanded and tightened our error
-checking in general. For example through making more use of the -Wall
-flag, cppcheck, and sanitizers. The wall flag would have helped us to
-see potential warning messages; Cppcheck for instance is a static
-analysis tool for C/C++ code that could have helped us detect
+checking in general. For example through making more use of the
+\verb|-Wall| compiler flag, cppcheck, and compiler sanitizers
+(\verb|-fsanitize=address| for example). The \verb|-Wall| flag would
+have given us more advanced compiler warning messages. Cppcheck is a
+static analysis tool for C/C++ code that could have helped us detect
 potential bugs or errors, undefined behavior, and dangerous code
-constructs; and Sanitizers could have helped us detect things like
+constructs; and sanitizers could have helped us detect things like
 overflows and uninitialized memory reading. By using all of these
 tools we could have scanned OpenSSL for vulnerabilities from multiple
 error checking sources, making sure that there weren't any errors in
