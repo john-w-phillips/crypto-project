@@ -522,9 +522,36 @@ for any vulnerabilities or bugs in the codebase.
     prevents it from being shipped out.
     
 \section{Limitations and Future Work}
-In terms of limitations, we originally intended to use Valgrind testing in order to scan the main branch of OpenSSL, but we didn’t get to doing that. Valgrind is an instrumentation framework that can be used as a tool to make sure the code is working properly and managing memory correctly, for example, it would test for potential memory leak issues and unsafe/ uninitialized memory accesses. Unfortunately however we couldn’t get Valgrind to work on the main branch for OpenSSL (we were only able to get it to work on old versions).
-We also thought that we could have expanded and tightened our error checking in general. For example through making more use of the -Wall flag, cppcheck, and sanitizers. The wall flag would have helped us to see potential warning messages; Cppcheck for instance is a static analysis tool for C/C++ code that could have helped us detect potential bugs or errors, undefined behavior, and dangerous code constructs; and Sanitizers could have helped us detect things like overflows and uninitialized memory reading. By using all of these tools we could have scanned OpenSSL for vulnerabilities from multiple error checking sources, making sure that there weren't any errors in the code.
-For further research opportunities, we thought that exploring some of the other potential vulnerabilities in OpenSSL would be a good place to explore. For example, we mentioned previously that only 65.1% of the code is covered in test cases, and so seeing if a security vulnerability would be possible within the currently untested code would be an area that we can look into. If a security vulnerability would be possible to implement in an untested area of the code that would present a significant security risk, making sure that that is not possible would add to the security of OpenSSL as a whole.
+In terms of limitations, we originally intended to use Valgrind
+testing in order to scan the main branch of OpenSSL, but we didn’t get
+to doing that. Valgrind is an instrumentation framework that can be
+used as a tool to make sure the code is working properly and managing
+memory correctly, for example, it would test for potential memory leak
+issues and unsafe/ uninitialized memory accesses. Unfortunately
+however we couldn’t get Valgrind to work on the main branch for
+OpenSSL (we were only able to get it to work on old versions).
+
+We also thought that we could have expanded and tightened our error
+checking in general. For example through making more use of the -Wall
+flag, cppcheck, and sanitizers. The wall flag would have helped us to
+see potential warning messages; Cppcheck for instance is a static
+analysis tool for C/C++ code that could have helped us detect
+potential bugs or errors, undefined behavior, and dangerous code
+constructs; and Sanitizers could have helped us detect things like
+overflows and uninitialized memory reading. By using all of these
+tools we could have scanned OpenSSL for vulnerabilities from multiple
+error checking sources, making sure that there weren't any errors in
+the code.
+
+For further research opportunities, we thought that exploring some of
+the other potential vulnerabilities in OpenSSL would be a good place
+to explore. For example, we mentioned previously that only 65.1\% of
+the code is covered in test cases, and so seeing if a security
+vulnerability would be possible within the currently untested code
+would be an area that we can look into. If a security vulnerability
+would be possible to implement in an untested area of the code that
+would present a significant security risk, making sure that that is
+not possible would add to the security of OpenSSL as a whole.
 
 \section{Conclusion}
 To understand how a vulnerability like the 2008 debian OpenSSL bug
