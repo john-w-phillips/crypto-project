@@ -565,14 +565,13 @@ tell if the code modification would adversely affect the security of
 the library, and OpenSSL currently has solid tests in place to mitigate
 the risk.
 
-The current state of the code is much better; however, having more
-thorough unit-testing coverage that can catch more accidental errors
-made by OpenSSL developers or package distributors could further
-improve OpenSSL. Furthermore, the
+The current state of the code is much better however, 
+having more thorough unit-testing coverage that can catch more accidental 
+errors made by OpenSSL developers or package distributors. Furthermore, the
 current implementation of OpenSSL's random number generator is based
 on a specification and is therefore much easier to reason about.
 
-Overall, we concluded that the security of the OpenSSL tool has increased
+We concluded that the security of the OpenSSL tool has increased
 substantially since the 2008 debian OpenSSL bug was caught despite the
 heartbleed vulnerability in some of its distribution out in the open.
     
